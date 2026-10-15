@@ -1,0 +1,1675 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#1d2025">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Calc Natural">
+<meta name="description" content="Calculadora científica con pantalla natural: cálculo, complejos, Base-N, matrices, vectores, estadística, distribuciones, ecuaciones, inecuaciones, tablas y proporciones.">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icon-192.png">
+<title>Calc Natural · Científica</title>
+<style>
+*{box-sizing:border-box}
+:root{
+  --amber:#f59e0b; --cyan:#06b6d4;
+  --lcd:#c4cebb; --lcd-hi:#d0d9c7; --ink:#14201a; --ink2:#55645a;
+  --math:"STIX Two Math","STIX Two Text","Cambria Math","Latin Modern Math","Times New Roman",Times,serif;
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,"Roboto Mono",monospace;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",sans-serif;
+}
+body.lcd-dark{--lcd:#0a120f; --lcd-hi:#0f1a16; --ink:#f3b54a; --ink2:#7f8b80}
+html,body{margin:0;height:100%;overflow:hidden;background:#0d0f12}
+body{position:fixed;inset:0;display:flex;justify-content:center;align-items:center;font-family:var(--sans);color:#ece9e3;
+  -webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none;touch-action:manipulation;-webkit-text-size-adjust:100%}
+.calc{width:100%;height:100dvh;max-width:470px;display:flex;flex-direction:column;gap:7px;
+  padding:calc(env(safe-area-inset-top) + 8px) calc(env(safe-area-inset-right) + 10px) calc(env(safe-area-inset-bottom) + 10px) calc(env(safe-area-inset-left) + 10px);
+  background:linear-gradient(175deg,#2b2f36 0%,#1e2126 16%,#1a1c20 100%)}
+@media (min-width:600px) and (min-height:700px){
+  .calc{height:min(calc(100dvh - 40px),930px);border-radius:32px;box-shadow:0 40px 90px #000c,inset 0 1px 0 #ffffff1c,inset 0 -2px 0 #0009}
+}
+/* ---------- Pantalla ---------- */
+.bezel{flex:0 0 auto;background:#0f1114;border-radius:16px;padding:9px;box-shadow:inset 0 2px 4px #000,0 1px 0 #ffffff14}
+.lcd{position:relative;height:clamp(176px,31dvh,280px);background:linear-gradient(180deg,var(--lcd-hi),var(--lcd));color:var(--ink);
+  border-radius:8px;overflow:hidden;display:flex;flex-direction:column;box-shadow:inset 0 2px 7px #0007,inset 0 0 0 1px #0005}
+.lcd::after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(155deg,#ffffff24 0%,#ffffff08 30%,transparent 46%)}
+body.lcd-dark .lcd::after{background:linear-gradient(155deg,#ffffff0e 0%,transparent 40%)}
+.status{flex:0 0 auto;height:19px;display:flex;align-items:center;gap:7px;padding:4px 9px 0;font:600 11px/1 var(--mono);color:var(--ink2)}
+.status .on{background:var(--ink);color:var(--lcd);padding:2px 4px;border-radius:2px}
+.status .app{margin-left:auto;font-family:var(--sans);font-weight:600}
+.view{position:relative;flex:1;min-height:0;padding:3px 10px 7px}
+.plate{display:flex;justify-content:space-between;align-items:baseline;padding:0 8px;font:600 11px/1 var(--sans);color:#8d929b}
+.plate b{font:italic 700 13px/1 var(--math);color:#c9ccd2;letter-spacing:.02em}
+/* ---------- Escritura natural ---------- */
+.m{font-family:var(--math)}
+.input{position:absolute;left:10px;right:10px;top:4px;height:56%;display:flex;align-items:center;font-size:23px;line-height:1.15;white-space:nowrap;overflow-x:auto;overflow-y:hidden;scrollbar-width:none}
+.input::-webkit-scrollbar,.result::-webkit-scrollbar{display:none}
+.input>.wrap{display:inline-flex;align-items:center;padding-right:6px}
+.result{position:absolute;left:10px;right:10px;bottom:7px;max-height:48%;display:flex;justify-content:flex-end;align-items:flex-end;font-size:27px;white-space:nowrap;overflow:auto;scrollbar-width:none}
+.result .rv{display:inline-flex;flex-direction:column;align-items:flex-end;margin-left:auto}
+.result .pr{display:inline-flex;align-items:center;gap:4px;font-size:.8em}
+.tk{display:inline-flex;align-items:center}
+.tk.op{padding:0 .08em}
+.tk small{font-size:.75em}
+.frac{display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;margin:0 .08em;font-size:.86em}
+.frac>span{display:inline-flex;align-items:center;justify-content:center;padding:0 .12em;line-height:1.12}
+.frac>span:first-child{border-bottom:.075em solid currentColor;padding-bottom:.05em}
+.frac>span:last-child{padding-top:.05em}
+.sqrt{display:inline-flex;align-items:stretch}
+.sqrt .rs{position:relative;flex:0 0 auto;width:.55em;margin-right:-1px}
+.sqrt .rs svg{position:absolute;inset:0;width:100%;height:100%;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linejoin:round;vector-effect:non-scaling-stroke;overflow:visible}
+.sqrt .rr{display:inline-flex;align-items:center;border-top:1.5px solid currentColor;padding:.08em .12em 0 .08em}
+.sqrt .ri{font-size:.55em;align-self:flex-start;margin-right:-.42em;margin-top:.05em;position:relative;z-index:1}
+.key .sqrt{font:500 17px/1 var(--math)}
+.sup{display:inline-flex;align-items:center;font-size:.62em;align-self:flex-start;margin-top:-.25em}
+.sub{display:inline-flex;align-items:center;font-size:.62em;align-self:flex-end;margin-bottom:-.2em}
+.abs{display:inline-flex;align-items:center;border-left:.07em solid currentColor;border-right:.07em solid currentColor;padding:0 .12em;margin:0 .06em}
+.bigop{display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;line-height:1;margin-right:.1em;gap:.12em}
+.bigop .lim{font-size:.55em;display:inline-flex;align-items:center}
+.bigop .sym{font-size:1.25em;line-height:1}
+.dx{font-style:italic;margin-left:.15em}
+.x10{font-size:.9em}
+.ph{display:inline-block;position:relative;width:.6em;height:.82em;border:.06em dashed currentColor;margin:0 .06em;opacity:.75;flex:0 0 auto}
+.cur{display:inline-block;width:2px;height:1.05em;background:currentColor;margin:0 -1px;animation:blink 1.05s steps(1) infinite;flex:0 0 auto}
+.ph .cur{position:absolute;left:1px;top:.04em;height:.68em}
+@keyframes blink{50%{opacity:0}}
+@media (prefers-reduced-motion:reduce){.cur{animation:none}}
+.mat{display:inline-flex;align-items:center;gap:0;border-left:.08em solid currentColor;border-right:.08em solid currentColor;border-radius:.25em;padding:.05em .1em;font-size:.6em}
+.mat table{border-collapse:collapse}
+.mat td{padding:.05em .4em;text-align:right;white-space:nowrap}
+/* ---------- Menús y formularios ---------- */
+.ttl{font:700 12.5px/1.2 var(--sans);padding:2px 2px 5px;display:flex;justify-content:space-between;gap:8px;border-bottom:1px solid color-mix(in srgb,var(--ink) 30%,transparent)}
+.ttl i{font-style:normal;font-weight:500;opacity:.75}
+.scroll{position:absolute;left:10px;right:10px;top:27px;bottom:22px;overflow:auto;scrollbar-width:thin}
+.scroll.full{bottom:6px}
+.row{display:flex;align-items:center;gap:8px;padding:4px 5px;font:500 14px/1.25 var(--sans);border-radius:3px;cursor:pointer}
+.row .n{width:13px;font:600 11px/1 var(--mono);opacity:.6;flex:0 0 auto}
+.row .lb{flex:1;min-width:0}
+.row .vl{font:500 12px/1.2 var(--mono);opacity:.85;text-align:right}
+.row .ch{opacity:.6}
+.row.sel{background:var(--ink);color:var(--lcd)}
+.row .rbtn{font:600 11px/1 var(--sans);border:1px solid currentColor;border-radius:4px;padding:3px 5px;background:none;color:inherit}
+.home{display:grid;grid-template-columns:repeat(4,1fr);gap:3px}
+.app{background:none;border:0;color:inherit;display:flex;flex-direction:column;align-items:center;gap:3px;padding:4px 1px 5px;font:600 10.5px/1.1 var(--sans);border-radius:6px;cursor:pointer}
+.app .ic{display:flex!important;align-items:center;justify-content:center;font:600 14px/1 var(--math);min-width:36px;padding:0 4px;white-space:nowrap;height:25px;display:grid;place-items:center;border:1.5px solid currentColor;border-radius:6px}
+.app.sel{background:var(--ink);color:var(--lcd)}
+.hint{position:absolute;left:10px;right:10px;bottom:4px;font:500 10.5px/1.2 var(--sans);color:var(--ink2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fl .row{font-size:14px}
+.fl .row .vl{font:500 15px/1.2 var(--math);display:inline-flex;align-items:center;justify-content:flex-end;gap:1px;min-height:20px}
+.grid{border-collapse:collapse;font:500 14px/1.2 var(--mono)}
+.grid th{font:600 11px/1 var(--sans);color:var(--ink2);padding:2px 4px;text-align:center}
+.grid th.rh{text-align:right;padding-right:6px}
+.grid td{border:1px solid color-mix(in srgb,var(--ink) 30%,transparent);padding:3px 6px;min-width:58px;height:24px;text-align:right;white-space:nowrap;cursor:pointer}
+.grid td.sel{background:var(--ink);color:var(--lcd)}
+.grid td .cur{height:.95em}
+.res .row{cursor:default}
+.res .row .vl{font:500 16px/1.2 var(--math);display:inline-flex;align-items:center;gap:2px}
+.tbl{border-collapse:collapse;font:500 13px/1.2 var(--mono);width:100%}
+.tbl th{font:600 11px var(--sans);color:var(--ink2);text-align:right;padding:2px 6px;border-bottom:1px solid color-mix(in srgb,var(--ink) 30%,transparent)}
+.tbl td{text-align:right;padding:3px 6px;white-space:nowrap}
+.tbl tr.sel td{background:var(--ink);color:var(--lcd)}
+.base .bin{font:500 13px/1.35 var(--mono);letter-spacing:.02em}
+.base .others{position:absolute;left:10px;right:10px;bottom:6px;font:500 11.5px/1.35 var(--mono);color:var(--ink2)}
+.base .others b{display:inline-block;width:32px;color:var(--ink)}
+.base .big{position:absolute;right:10px;left:10px;top:58px;text-align:right;font:500 26px/1.15 var(--mono);white-space:nowrap;overflow-x:auto}
+.base .bexpr{position:absolute;left:10px;right:10px;top:6px;font:500 20px/1.2 var(--mono);white-space:nowrap;overflow-x:auto;display:flex;align-items:center}
+.err{position:absolute;inset:12px 16px;background:var(--lcd);border:2px solid var(--ink);border-radius:6px;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:7px;text-align:center;padding:10px;z-index:3}
+.err b{font:700 17px/1.2 var(--sans)}
+.err span{font:500 12px/1.3 var(--sans);color:var(--ink2)}
+/* ---------- Teclado ---------- */
+.ctrl{flex:0 0 auto;display:grid;grid-template-columns:1fr 1fr 1.55fr 1fr 1fr;grid-template-rows:1fr 1fr;gap:7px 8px;height:clamp(80px,12.6dvh,110px);padding:0 2px}
+.cbtn{border:0;border-radius:14px;background:linear-gradient(180deg,#3a3f48,#2a2e35);color:#d9d6cf;font:600 12px/1 var(--sans);
+  box-shadow:0 2px 0 #0b0c0e,0 3px 7px #0007,inset 0 1px 0 #ffffff1c;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:0;position:relative}
+.cbtn .s2{font:600 9px/1 var(--sans);color:var(--amber)}
+.cbtn.shift{color:var(--amber)} .cbtn.alpha{color:var(--cyan)}
+body.sh .cbtn.shift{background:var(--amber);color:#1c1405}
+body.al .cbtn.alpha{background:var(--cyan);color:#04191d}
+.dpad{grid-column:3;grid-row:1/span 2;justify-self:center;height:100%;aspect-ratio:1;position:relative;border-radius:50%;
+  background:radial-gradient(circle at 50% 30%,#3d434c,#24282e 72%);box-shadow:0 3px 0 #0b0c0e,0 5px 12px #0008,inset 0 1px 0 #ffffff1c}
+.dpad button{position:absolute;border:0;background:transparent;color:#d6d3cc;font:600 12px/1 var(--sans);display:grid;place-items:center;border-radius:40%}
+.dpad .up{top:2%;left:32%;width:36%;height:30%}
+.dpad .dn{bottom:2%;left:32%;width:36%;height:30%}
+.dpad .lf{left:2%;top:32%;width:30%;height:36%}
+.dpad .rt{right:2%;top:32%;width:30%;height:36%}
+.dpad .ok{left:33%;top:33%;width:34%;height:34%;border-radius:50%;background:linear-gradient(#4a515b,#2d3239);box-shadow:inset 0 1px 0 #ffffff26,0 1px 3px #000a;font-weight:700}
+.dpad button.down{background:#ffffff14}
+.dpad .ok.down{background:#565e69}
+.keys{display:grid;min-height:0}
+.fn{flex:3;grid-template-columns:repeat(6,1fr);grid-template-rows:repeat(3,1fr);gap:3px 7px}
+.num{flex:4.5;grid-template-columns:repeat(5,1fr);grid-template-rows:repeat(4,1fr);gap:4px 9px;margin-top:2px}
+.k{display:flex;flex-direction:column;min-height:0;min-width:0}
+.lg{flex:0 0 13px;display:flex;justify-content:space-between;align-items:flex-end;font:600 9.5px/1 var(--sans);padding:0 1px 2px;white-space:nowrap;overflow:hidden;gap:2px}
+.lg .s{color:var(--amber)} .lg .a{color:var(--cyan)}
+.lg sup{font-size:.75em;line-height:0}
+body.sh .lg .s,body.al .lg .a{color:#14100a;border-radius:3px;padding:1px 2px}
+body.sh .lg .s{background:var(--amber)} body.al .lg .a{background:var(--cyan)}
+body.base-mode .fn .lg span,body.base-mode .num .lg span{visibility:hidden}
+.key{flex:1;min-height:0;width:100%;border:0;border-radius:8px 8px 11px 11px;padding:0;display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(180deg,#3b4049,#2d3138);color:#ece9e3;font:500 15px/1 var(--sans);
+  box-shadow:0 2px 0 #0a0b0d,0 3px 6px #0007,inset 0 1px 0 #ffffff1c;transition:transform .04s}
+.key .ms{font-family:var(--math);font-size:17px}
+.key i{font-family:var(--math);font-size:19px}
+.key sup{font-size:.62em;line-height:0;position:relative;top:-.15em}
+.key sub{font-size:.62em;line-height:0}
+.num .key{background:linear-gradient(180deg,#ebe8e1,#d3cfc6);color:#17191c;font:600 22px/1 var(--sans);box-shadow:0 2px 0 #77736b,0 3px 6px #0008,inset 0 1px 0 #fff9}
+.num .key.wd{font-size:14px;letter-spacing:.02em}
+.num .key.del,.num .key.ac{background:linear-gradient(180deg,#f8b443,#e0920f);color:#1f1506;box-shadow:0 2px 0 #7b4f07,0 3px 6px #0008,inset 0 1px 0 #ffe2a8}
+.key.down,.cbtn.down{transform:translateY(2px);box-shadow:0 0 0 #000,inset 0 1px 0 #ffffff12;filter:brightness(1.12)}
+.key:focus-visible,.cbtn:focus-visible,.dpad button:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+.toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 22px);transform:translate(-50%,20px);opacity:0;background:#0f1114;color:#f3f1ec;border:1px solid #3a3f48;
+  padding:9px 14px;border-radius:10px;font:500 13px/1.3 var(--sans);transition:opacity .2s,transform .2s;pointer-events:none;z-index:9;max-width:86vw;text-align:center}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+@media (max-height:640px){.lcd{height:clamp(150px,28dvh,200px)}.input{font-size:20px}.result{font-size:23px}.lg{flex-basis:11px;font-size:8.5px}.num .key{font-size:19px}}
+</style>
+</head>
+<body>
+<main class="calc" aria-label="Calculadora científica">
+  <div class="bezel"><section class="lcd" id="lcd"><div class="status" id="status"></div><div class="view" id="view" aria-live="polite"></div></section></div>
+  <div class="plate"><span>Científica natural</span><b>N·570</b></div>
+  <section class="ctrl" id="ctrl"></section>
+  <section class="keys fn" id="fn"></section>
+  <section class="keys num" id="num"></section>
+</main>
+<div class="toast" id="toast" role="status"></div>
+<script src="https://cdn.jsdelivr.net/npm/mathjs@12.4.2/lib/browser/math.js"></script>
+<script>
+'use strict';
+/* ================= Utilidades ================= */
+const $ = s => document.querySelector(s);
+class CalcError extends Error { constructor(m) { super(m); this.calc = true; } }
+const ERR = { math: 'Error matemático', syntax: 'Error de sintaxis', arg: 'Error de argumento', dim: 'Error de dimensión',
+  time: 'Error de tiempo', undef: 'Variable no definida', range: 'Fuera de rango', data: 'Faltan datos' };
+const fail = k => { throw new CalcError(ERR[k] || k); };
+const isNum = v => typeof v === 'number';
+const isCx = v => !!(v && v.isComplex);
+const isMat = v => !!(v && v.isMatrix);
+const clone = o => JSON.parse(JSON.stringify(o));
+const gcd = (a, b) => { a = Math.abs(a); b = Math.abs(b); while (b) [a, b] = [b, a % b]; return a; };
+const ndig = n => String(Math.abs(n)).replace('.', '').length;
+const MINUS = '−';
+const neg = s => String(s).replace(/-/g, MINUS);
+
+/* ================= Persistencia (IndexedDB, patrón repositorio) ================= */
+const Repo = (() => {
+  let p;
+  const db = () => p || (p = new Promise((res, rej) => {
+    const r = indexedDB.open('calc-cw', 1);
+    r.onupgradeneeded = () => r.result.createObjectStore('kv');
+    r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error);
+  }));
+  return {
+    async get(k) { try { const d = await db(); return await new Promise((res, rej) => { const q = d.transaction('kv').objectStore('kv').get(k); q.onsuccess = () => res(q.result); q.onerror = () => rej(q.error); }); } catch (e) { return undefined; } },
+    async set(k, v) { try { const d = await db(); await new Promise((res, rej) => { const t = d.transaction('kv', 'readwrite'); t.objectStore('kv').put(v, k); t.oncomplete = res; t.onerror = () => rej(t.error); }); } catch (e) { } }
+  };
+})();
+
+/* ================= Estado ================= */
+const DEF_SET = { angle: 'D', fmt: 'norm1', fix: 2, sci: 10, res: 'exact', cplx: 'rect', lcd: 'classic', haptic: true };
+const VARS = ['A', 'B', 'C', 'D', 'E', 'F', 'x', 'y', 'z', 'M'];
+const S = {
+  app: 'calc', shift: false, alpha: false, set: { ...DEF_SET },
+  vars: Object.fromEntries(VARS.map(v => [v, 0])), ans: 0, preAns: 0,
+  mats: {}, vcts: {}, matAns: null, vctAns: null,
+  expr: [], cur: { path: [], i: 0 }, done: false, res: null, err: null, hist: [], hi: 0,
+  stack: [], form: null, view: null,
+  st: { type: '1v', data: [] }, eq: {}, tb: { f: [], g: [], a: 1, b: 5, s: 1 },
+  base: { b: 10, toks: [], res: null, done: false }
+};
+const packV = v => isCx(v) ? { re: v.re, im: v.im, cx: 1 } : (isNum(v) ? v : 0);
+const unpackV = v => (v && v.cx) ? math.complex(v.re, v.im) : (isNum(v) ? v : 0);
+let saveT = 0;
+function save() {
+  clearTimeout(saveT);
+  saveT = setTimeout(() => Repo.set('state', {
+    set: S.set, vars: Object.fromEntries(VARS.map(k => [k, packV(S.vars[k])])), ans: packV(S.ans), preAns: packV(S.preAns),
+    mats: S.mats, vcts: S.vcts, matAns: S.matAns, vctAns: S.vctAns, st: S.st, eq: S.eq,
+    tb: { a: S.tb.a, b: S.tb.b, s: S.tb.s, f: S.tb.f, g: S.tb.g }, app: S.app, base: S.base.b
+  }), 250);
+}
+async function load() {
+  const d = await Repo.get('state'); if (!d) return;
+  Object.assign(S.set, d.set || {});
+  if (d.vars) for (const k of VARS) S.vars[k] = unpackV(d.vars[k]);
+  S.ans = unpackV(d.ans); S.preAns = unpackV(d.preAns);
+  S.mats = d.mats || {}; S.vcts = d.vcts || {}; S.matAns = d.matAns || null; S.vctAns = d.vctAns || null;
+  if (d.st) S.st = d.st; if (d.eq) S.eq = d.eq; if (d.tb) Object.assign(S.tb, d.tb);
+  if (d.base) S.base.b = d.base;
+  if (d.app) S.app = d.app;
+}
+
+/* ================= Ángulos ================= */
+const toRad = x => S.set.angle === 'D' ? x * Math.PI / 180 : S.set.angle === 'G' ? x * Math.PI / 200 : x;
+const fromRad = x => S.set.angle === 'D' ? x * 180 / Math.PI : S.set.angle === 'G' ? x * 200 / Math.PI : x;
+
+/* ================= Numérico ================= */
+class Pair { constructor(l, v) { this.l = l; this.v = v; } }
+function lgamma(z) {
+  const c = [0.99999999999980993, 676.5203681218851, -1259.1392167224028, 771.32342877765313, -176.61502916214059,
+    12.507343278686905, -0.13857109526572012, 9.9843695780195716e-6, 1.5056327351493116e-7];
+  if (z < 0.5) return Math.log(Math.PI / Math.abs(Math.sin(Math.PI * z))) - lgamma(1 - z);
+  z -= 1; let x = c[0]; for (let i = 1; i < 9; i++) x += c[i] / (z + i);
+  const t = z + 7.5; return 0.5 * Math.log(2 * Math.PI) + (z + 0.5) * Math.log(t) - t + Math.log(x);
+}
+const XGK = [0.991455371120812639, 0.949107912342758525, 0.864864423359769073, 0.741531185599394440, 0.586087235467691130, 0.405845151377397167, 0.207784955007898468, 0];
+const WGK = [0.022935322010529225, 0.063092092629978553, 0.104790010322250184, 0.140653259715525919, 0.169004726639267903, 0.190350578064785410, 0.204432940075298892, 0.209482141084727828];
+const WG = [0.129484966168869693, 0.279705391489276668, 0.381830050505118945, 0.417959183673469388];
+function gk15(f, a, b) {
+  const c = (a + b) / 2, h = (b - a) / 2, fc = f(c);
+  let k = fc * WGK[7], g = fc * WG[3];
+  for (let j = 0; j < 7; j++) {
+    const x = h * XGK[j], s = f(c - x) + f(c + x);
+    k += WGK[j] * s; if (j % 2 === 1) g += WG[(j - 1) / 2] * s;
+  }
+  return { v: k * h, e: Math.abs((k - g) * h) };
+}
+function integrate(f, a, b) {
+  if (a === b) return 0;
+  const first = gk15(f, a, b);
+  const tol = Math.max(1e-13, 1e-11 * Math.abs(first.v));
+  const rec = (a, b, r, tol, d) => {
+    if (r.e <= tol || d > 30) return r.v;
+    const m = (a + b) / 2;
+    return rec(a, m, gk15(f, a, m), tol / 2, d + 1) + rec(m, b, gk15(f, m, b), tol / 2, d + 1);
+  };
+  return rec(a, b, first, tol, 0);
+}
+function ridders(f, x) {
+  const con = 1.4, con2 = con * con; let h = 0.05 * Math.max(1, Math.abs(x));
+  const a = [[(f(x + h) - f(x - h)) / (2 * h)]]; let err = Infinity, ans = a[0][0];
+  for (let i = 1; i < 12; i++) {
+    h /= con; a[i] = [(f(x + h) - f(x - h)) / (2 * h)]; let fac = con2;
+    for (let j = 1; j <= i; j++) {
+      a[i][j] = (a[i][j - 1] * fac - a[i - 1][j - 1]) / (fac - 1); fac *= con2;
+      const e = Math.max(Math.abs(a[i][j] - a[i][j - 1]), Math.abs(a[i][j] - a[i - 1][j - 1]));
+      if (e <= err) { err = e; ans = a[i][j]; }
+    }
+    if (Math.abs(a[i][i] - a[i - 1][i - 1]) >= 2 * err) break;
+  }
+  return ans;
+}
+function rrefArr(A, full) {
+  const M = A.map(r => r.slice()), R = M.length, C = M[0].length; let lead = 0;
+  for (let r = 0; r < R && lead < C; r++) {
+    let best = r;
+    for (; lead < C; lead++) {
+      best = r; for (let i = r + 1; i < R; i++) if (Math.abs(M[i][lead]) > Math.abs(M[best][lead])) best = i;
+      if (Math.abs(M[best][lead]) > 1e-12) break;
+    }
+    if (lead >= C) break;
+    [M[best], M[r]] = [M[r], M[best]];
+    const lv = M[r][lead]; M[r] = M[r].map(v => v / lv);
+    for (let j = full ? 0 : r + 1; j < R; j++) {
+      if (j === r) continue; const f = M[j][lead];
+      if (f) M[j] = M[j].map((v, k) => v - f * M[r][k]);
+    }
+    lead++;
+  }
+  return M.map(r => r.map(v => Math.abs(v) < 1e-12 ? 0 : v));
+}
+const toArr = m => isMat(m) ? m.toArray() : m;
+
+/* ================= Funciones para mathjs ================= */
+function trig(f) {
+  return x => {
+    if (!isNum(x)) return math[f](x);
+    const r = toRad(x);
+    if (f === 'tan' && Math.abs(Math.cos(r)) < 1e-15) fail('math');
+    const v = Math[f](r); return Math.abs(v) < 1e-15 ? 0 : v;
+  };
+}
+function itrig(f) {
+  return x => {
+    if (!isNum(x)) return math[f](x);
+    if (f !== 'atan' && Math.abs(x) > 1) { if (S.app === 'cplx') return math[f](x); fail('math'); }
+    return fromRad(Math[f](x));
+  };
+}
+function scope() {
+  const s = {}; for (const k of VARS) s[k] = S.vars[k];
+  s.Ans = S.ans; s.PreAns = S.preAns;
+  for (const k of 'ABCD') {
+    if (S.mats[k]) s['Mat' + k] = math.matrix(S.mats[k]);
+    if (S.vcts[k]) s['Vct' + k] = math.matrix(S.vcts[k]);
+  }
+  if (S.matAns) s.MatAns = math.matrix(S.matAns);
+  if (S.vctAns) s.VctAns = math.matrix(S.vctAns);
+  return s;
+}
+function fnOf(str) {
+  let c; try { c = math.compile(str); } catch (e) { fail('syntax'); }
+  const sc = scope(); let n = 0;
+  return x => {
+    if (++n > 300000) fail('time');
+    sc.x = x; let v = c.evaluate(sc);
+    if (isCx(v) && Math.abs(v.im) < 1e-12 * Math.max(1, Math.abs(v.re))) v = v.re;
+    if (!isNum(v) || !isFinite(v)) fail('math'); return v;
+  };
+}
+const toInt = v => { if (!isNum(v) || Math.abs(v - Math.round(v)) > 1e-9) fail('arg'); return Math.round(v); };
+function roundFmt(x) {
+  if (!isNum(x)) return x;
+  if (S.set.fmt === 'fix') return +x.toFixed(S.set.fix);
+  if (S.set.fmt === 'sci') return +x.toPrecision(S.set.sci);
+  return +x.toPrecision(10);
+}
+function vecOps() {
+  const V = v => { const a = toArr(v); if (!Array.isArray(a) || Array.isArray(a[0])) fail('dim'); return a; };
+  return {
+    dotp_: (a, b) => { a = V(a); b = V(b); if (a.length !== b.length) fail('dim'); return a.reduce((s, v, i) => s + v * b[i], 0); },
+    crossp_: (a, b) => { a = V(a); b = V(b); if (a.length !== b.length) fail('dim'); const p = v => v.length === 2 ? [v[0], v[1], 0] : v; return math.matrix(math.cross(p(a), p(b))); },
+    angle_: (a, b) => { a = V(a); b = V(b); const d = a.reduce((s, v, i) => s + v * b[i], 0); const na = Math.hypot(...a), nb = Math.hypot(...b); if (!na || !nb) fail('math'); return fromRad(Math.acos(Math.max(-1, Math.min(1, d / (na * nb))))); },
+    unitv_: a => { a = V(a); const n = Math.hypot(...a); if (!n) fail('math'); return math.matrix(a.map(v => v / n)); }
+  };
+}
+math.import({
+  sin_: trig('sin'), cos_: trig('cos'), tan_: trig('tan'), asin_: itrig('asin'), acos_: itrig('acos'), atan_: itrig('atan'),
+  nthRoot_: (x, n) => {
+    if (!isNum(x) || !isNum(n)) return math.pow(x, math.divide(1, n));
+    if (n === 0) fail('math');
+    if (x < 0) { if (Number.isInteger(n) && Math.abs(n) % 2 === 1) return -Math.pow(-x, 1 / n); if (S.app === 'cplx') return math.pow(math.complex(x, 0), 1 / n); fail('math'); }
+    return Math.pow(x, 1 / n);
+  },
+  absx_: v => isMat(v) && v.size().length === 1 ? math.norm(v) : math.abs(v),
+  rnd_: x => roundFmt(x),
+  ranh_: () => Math.floor(Math.random() * 1000) / 1000,
+  ranInt_: (a, b) => { a = toInt(a); b = toInt(b); if (a > b) fail('arg'); return a + Math.floor(Math.random() * (b - a + 1)); },
+  pol_: (x, y) => { if (!isNum(x) || !isNum(y)) fail('arg'); return new Pair(['r', 'θ'], [Math.hypot(x, y), fromRad(Math.atan2(y, x))]); },
+  rec_: (r, t) => { if (!isNum(r) || !isNum(t)) fail('arg'); const c = trig('cos')(t), s = trig('sin')(t); return new Pair(['x', 'y'], [r * c, r * s]); },
+  polar_: (r, t) => math.complex({ r, phi: toRad(t) }),
+  integ_: (f, a, b) => { if (!isNum(a) || !isNum(b)) fail('arg'); return integrate(fnOf(f), a, b); },
+  deriv_: (f, x0) => { if (!isNum(x0)) fail('arg'); return ridders(fnOf(f), x0); },
+  sum_: (f, a, b) => { a = toInt(a); b = toInt(b); if (b < a) fail('arg'); if (b - a > 100000) fail('time'); const g = fnOf(f); let s = 0; for (let k = a; k <= b; k++) s += g(k); return s; },
+  prod_: (f, a, b) => { a = toInt(a); b = toInt(b); if (b < a) fail('arg'); if (b - a > 100000) fail('time'); const g = fnOf(f); let s = 1; for (let k = a; k <= b; k++) s *= g(k); return s; },
+  argc_: z => fromRad(isNum(z) ? Math.atan2(0, z) : math.arg(z)),
+  conjg_: z => math.conj(z), rep_: z => math.re(z), imp_: z => math.im(z),
+  ref_: m => math.matrix(rrefArr(toArr(m), false)), rref_: m => math.matrix(rrefArr(toArr(m), true)),
+  FtoC_: f => (f - 32) * 5 / 9, CtoF_: c => c * 9 / 5 + 32,
+  ...vecOps()
+}, { override: true });
+
+/* ================= Emisor: árbol natural → texto mathjs ================= */
+const K = (d, m, k) => ({ t: 'k', d, m, k });
+const T = (t, n, pre) => ({ t, s: pre ? pre.map(a => a.slice()) : Array.from({ length: n }, () => []) });
+const ORD = { frac: [0, 1], mixed: [0, 1, 2], sqrt: [0], root: [0, 1], pow: [0], p10: [0], pe: [0], E10: [0], logb: [0, 1], abs: [0], int: [0, 1, 2], der: [0, 1], sum: [0, 1, 2], prod: [0, 1, 2] };
+const STEN = { num: [1, 1], val: [1, 1], fn: [1, 0], open: [1, 0], close: [0, 1], op: [0, 0], post: [0, 1], comma: [0, 0], inf: [0, 0], E: [0, 0] };
+function emit(slot) {
+  let out = '', prev = null;
+  for (const it of slot) {
+    let s, st = 1, en = 1, num = false;
+    if (it.t === 'k') { [st, en] = STEN[it.k]; s = it.m; num = it.k === 'num'; }
+    else {
+      const a = it.s.map(emitC);
+      switch (it.t) {
+        case 'frac': s = `((${a[0]})/(${a[1]}))`; break;
+        case 'mixed': s = `((${a[0]})+(${a[1]})/(${a[2]}))`; break;
+        case 'sqrt': s = `sqrt(${a[0]})`; break;
+        case 'root': s = `nthRoot_((${a[1]}),(${a[0]}))`; break;
+        case 'pow': s = `^(${a[0]})`; st = 0; break;
+        case 'p10': s = `(10^(${a[0]}))`; break;
+        case 'pe': s = `(e^(${a[0]}))`; break;
+        case 'logb': s = `log((${a[1]}),(${a[0]}))`; break;
+        case 'abs': s = `absx_(${a[0]})`; break;
+        case 'int': s = `integ_(${JSON.stringify(a[0])},(${a[1]}),(${a[2]}))`; break;
+        case 'der': s = `deriv_(${JSON.stringify(a[0])},(${a[1]}))`; break;
+        case 'sum': s = `sum_(${JSON.stringify(a[0])},(${a[1]}),(${a[2]}))`; break;
+        case 'prod': s = `prod_(${JSON.stringify(a[0])},(${a[1]}),(${a[2]}))`; break;
+        case 'E10': {
+          st = 0; const lit = /^-?\d+$/.test(a[0]);
+          const pre = prev && prev.num ? '' : (prev && prev.en ? '*1' : '1');
+          s = lit ? `${pre}e${a[0]}` : `${pre}*10^(${a[0]})`;
+          break;
+        }
+      }
+    }
+    if (prev && prev.en && st && !(prev.num && num)) out += '*';
+    out += s; prev = { en, num };
+  }
+  return out;
+}
+function closeP(s) {
+  let d = 0, q = false;
+  for (let i = 0; i < s.length; i++) {
+    const c = s[i];
+    if (c === '"' && s[i - 1] !== '\\') q = !q;
+    else if (!q) { if (c === '(') d++; else if (c === ')') d--; }
+  }
+  if (d < 0) fail('syntax');
+  return s + ')'.repeat(d);
+}
+const OPD = '(?:\\d+\\.?\\d*(?:e-?\\d+)?|\\.\\d+(?:e-?\\d+)?|[A-Za-z_]\\w*(?:\\((?:[^()]|\\([^()]*\\))*\\))?|\\((?:[^()]|\\([^()]*\\))*\\))';
+const INF = { P: 'permutations', C: 'combinations', A: 'polar_' };
+function infix(s) {
+  for (const k of 'PCA') {
+    const re = new RegExp(`(${OPD})~${k}~(-?${OPD})`); let g = 0;
+    while (re.test(s) && g++ < 30) s = s.replace(re, `${INF[k]}($1,$2)`);
+  }
+  if (/~[PCA]~/.test(s)) fail('syntax');
+  return s;
+}
+const emitC = slot => closeP(infix(emit(slot)));
+
+function mapErr(e) {
+  if (e && e.calc) return e;
+  const m = (e && e.message) || '';
+  if (/Undefined symbol|Undefined function/.test(m)) return new CalcError(ERR.undef);
+  if (/[Dd]imension|size|square/.test(m)) return new CalcError(ERR.dim);
+  if (/Unexpected|Parenthesis|expected|Syntax|Invalid|end of expression|Value expected/.test(m)) return new CalcError(ERR.syntax);
+  if (/integer|Unexpected type|must be|[Aa]rgument/.test(m)) return new CalcError(ERR.arg);
+  return new CalcError(ERR.math);
+}
+function normalize(v, allowCx) {
+  if (v && v.isResultSet) v = v.entries[v.entries.length - 1];
+  if (typeof v === 'boolean') return v ? 1 : 0;
+  if (isCx(v)) {
+    const mag = Math.max(Math.abs(v.re), Math.abs(v.im));
+    if (!isFinite(v.re) || !isFinite(v.im)) fail('math');
+    if (Math.abs(v.im) < 1e-13 * mag) return v.re;
+    if (!allowCx) fail('math');
+    return math.complex(Math.abs(v.re) < 1e-13 * mag ? 0 : v.re, v.im);
+  }
+  if (isNum(v)) { if (!isFinite(v)) fail('math'); return v; }
+  if (v instanceof Pair || isMat(v)) return v;
+  if (v === undefined || v === null) fail('syntax');
+  if (v && v.isUnit) fail('syntax');
+  return v;
+}
+function evalSlot(slot, allowCx) {
+  const str = emitC(slot);
+  if (!str) fail('syntax');
+  let v;
+  try { v = math.evaluate(str, scope()); } catch (e) { throw mapErr(e); }
+  return normalize(v, allowCx);
+}
+function evalNum(slot) { const v = evalSlot(slot, false); if (!isNum(v)) fail('arg'); return v; }
+
+/* ================= Formato de resultados ================= */
+const fracH = (n, d) => `<span class="frac"><span>${n}</span><span>${d}</span></span>`;
+const RAD = '<span class="rs"><svg viewBox="0 0 10 24" preserveAspectRatio="none" aria-hidden="true"><path d="M0.6 14.5 L3.2 12.6 L6.2 23 L9.4 0.9 L10 0.9"/></svg></span>';
+const sqrtH = r => `<span class="sqrt">${RAD}<span class="rr">${r}</span></span>`;
+function ratApprox(x, maxDen) {
+  if (!isFinite(x)) return null;
+  const sg = x < 0 ? -1 : 1, ax = Math.abs(x); let h0 = 0, h1 = 1, k0 = 1, k1 = 0, b = ax;
+  for (let i = 0; i < 40; i++) {
+    const a = Math.floor(b), h2 = a * h1 + h0, k2 = a * k1 + k0;
+    if (k2 > maxDen) break;
+    h0 = h1; h1 = h2; k0 = k1; k1 = k2;
+    if (Math.abs(ax - h1 / k1) <= 1e-13 * Math.max(1, ax)) return [sg * h1, k1];
+    const r = b - a; if (r < 1e-15) break; b = 1 / r;
+  }
+  return null;
+}
+function sqSplit(N) { for (let k = Math.floor(Math.sqrt(N)); k > 1; k--) if (N % (k * k) === 0) return [k, N / (k * k)]; return [1, N]; }
+const SQF = [2, 3, 5, 6, 7, 10, 11, 13, 14, 15, 17, 19, 21, 22, 23, 26, 29, 30];
+function exactForm(x) {
+  if (!isNum(x) || !isFinite(x) || x === 0) return null;
+  const ax = Math.abs(x); if (ax >= 1e10 || ax < 1e-9) return null;
+  const sg = x < 0 ? MINUS : '';
+  const f = ratApprox(x, 1e6);
+  if (f) { if (f[1] === 1 || ndig(f[0]) + ndig(f[1]) > 10) return null; return sg + fracH(Math.abs(f[0]), f[1]); }
+  if (ax * ax < 1e7) {
+    const q = ratApprox(x * x, 10000);
+    if (q && q[0] < 1e8) {
+      const [a, b] = sqSplit(q[0] * q[1]);
+      if (b > 1 && b < 1e5) {
+        const g = gcd(a, q[1]), A = a / g, Q = q[1] / g;
+        const num = (A === 1 ? '' : A) + sqrtH(b);
+        return sg + (Q === 1 ? num : fracH(num, Q));
+      }
+    }
+  }
+  const p = ratApprox(x / Math.PI, 1000);
+  if (p && ndig(p[0]) + ndig(p[1]) <= 7) {
+    const n = Math.abs(p[0]), num = (n === 1 ? '' : n) + 'π';
+    return sg + (p[1] === 1 ? num : fracH(num, p[1]));
+  }
+  for (let d = 1; d <= 12; d++) for (const c of SQF) {
+    const y = x * d, rc = Math.sqrt(c);
+    for (let b = -24; b <= 24; b++) {
+      if (!b) continue; const a = y - b * rc, ra = Math.round(a);
+      if (!ra || Math.abs(a - ra) > 1e-10 * Math.max(1, Math.abs(y))) continue;
+      const g = gcd(gcd(ra, b), d); const A = ra / g, B = b / g, Dd = d / g;
+      const num = neg(A) + (B > 0 ? '+' : MINUS) + (Math.abs(B) === 1 ? '' : Math.abs(B)) + sqrtH(c);
+      return Dd === 1 ? num : fracH(num, Dd);
+    }
+  }
+  return null;
+}
+const x10 = e => `<span class="x10">×10</span><span class="sup">${neg(e)}</span>`;
+function sciStr(x, sig, trim) {
+  let [m, e] = x.toExponential(Math.max(0, sig - 1)).split('e');
+  if (trim) m = String(parseFloat(m));
+  return neg(m) + x10(+e);
+}
+function engStr(x) {
+  if (x === 0) return '0';
+  let e = Math.floor(Math.log10(Math.abs(x)) / 3) * 3, m = +(x / Math.pow(10, e)).toPrecision(10);
+  if (Math.abs(m) >= 1000) { m = +(m / 1000).toPrecision(10); e += 3; }
+  return neg(String(m)) + x10(e);
+}
+function fmtDec(x) {
+  if (!isNum(x)) return String(x);
+  if (x === 0) return S.set.fmt === 'fix' ? (0).toFixed(S.set.fix) : (S.set.fmt === 'sci' ? sciStr(0, S.set.sci) : '0');
+  const ax = Math.abs(x), f = S.set.fmt;
+  if (f === 'fix') return ax >= 1e10 ? sciStr(x, 10, true) : neg(x.toFixed(S.set.fix));
+  if (f === 'sci') return sciStr(x, S.set.sci, false);
+  const lo = f === 'norm1' ? 1e-2 : 1e-9;
+  if (ax >= 1e10 || ax < lo) return sciStr(x, 10, true);
+  const s = String(parseFloat(x.toPrecision(10)));
+  return s.includes('e') ? sciStr(x, 10, true) : neg(s);
+}
+function shortDec(x) {
+  if (!isNum(x)) return String(x);
+  if (x === 0) return '0';
+  const ax = Math.abs(x);
+  if (ax >= 1e9 || ax < 1e-5) return sciStr(x, 6, true);
+  return neg(String(parseFloat(x.toPrecision(9))));
+}
+function cellFmt(x) {
+  if (isCx(x)) return cxStr(x, false);
+  const f = isNum(x) && S.set.res === 'exact' ? ratApprox(x, 1000) : null;
+  if (f && f[1] !== 1 && ndig(f[0]) + ndig(f[1]) <= 6) return (f[0] < 0 ? MINUS : '') + fracH(Math.abs(f[0]), f[1]);
+  return shortDec(x);
+}
+function mixedForm(x) {
+  const f = ratApprox(x, 1e6); if (!f || f[1] === 1 || Math.abs(f[0]) < f[1]) return null;
+  const sg = x < 0 ? MINUS : '', n = Math.abs(f[0]), w = Math.floor(n / f[1]);
+  return sg + w + fracH(n % f[1], f[1]);
+}
+function primeStr(x) {
+  if (!Number.isInteger(x) || x < 2 || x > 1e10) return null;
+  let n = x; const out = [];
+  for (let p = 2; p * p <= n; p += (p === 2 ? 1 : 2)) { let e = 0; while (n % p === 0) { n /= p; e++; } if (e) out.push(p + (e > 1 ? `<span class="sup">${e}</span>` : '')); }
+  if (n > 1) out.push(String(n));
+  return out.join('×');
+}
+function dmsStr(x) {
+  const sg = x < 0 ? MINUS : ''; let a = Math.abs(x);
+  let d = Math.floor(a), mf = (a - d) * 60, m = Math.floor(mf), s = +((mf - m) * 60).toFixed(2);
+  if (s >= 60) { s = 0; m++; } if (m >= 60) { m = 0; d++; }
+  return `${sg}${d}°${m}′${String(s).replace(/\.?0+$/, '') || '0'}″`;
+}
+function fmtNum(x, alt = 'std') {
+  if (isCx(x)) return cxStr(x, false);
+  switch (alt) {
+    case 'dec': return fmtDec(x);
+    case 'mixed': return mixedForm(x) || exactForm(x) || fmtDec(x);
+    case 'eng': return engStr(x);
+    case 'sci': return x === 0 ? '0' : sciStr(x, 10, true);
+    case 'prime': return primeStr(x) || fmtDec(x);
+    case 'dms': return dmsStr(x);
+    case 'exact': return exactForm(x) || fmtDec(x);
+    default: return (S.set.res === 'exact' ? exactForm(x) : null) || fmtDec(x);
+  }
+}
+function cxStr(z, polar, alt) {
+  if (polar) {
+    const r = Math.hypot(z.re, z.im), t = fromRad(Math.atan2(z.im, z.re));
+    return `${fmtNum(r, alt)}<span class="tk">∠</span>${fmtNum(Math.abs(t) < 1e-12 ? 0 : t, alt)}`;
+  }
+  const re = z.re, im = z.im; let h = '';
+  if (re !== 0) h += fmtNum(re, alt);
+  if (im !== 0) {
+    const ai = Math.abs(im), c = Math.abs(ai - 1) < 1e-14 ? '' : fmtNum(ai, alt);
+    h += (im < 0 ? MINUS : (re !== 0 ? '+' : '')) + c + '<i>i</i>';
+  }
+  return h || '0';
+}
+function matH(m) {
+  let a = toArr(m); if (!Array.isArray(a[0])) a = [a];
+  return `<span class="mat"><table>${a.map(r => `<tr>${r.map(v => `<td>${cellFmt(v)}</td>`).join('')}</tr>`).join('')}</table></span>`;
+}
+function fmtRes(R) {
+  const v = R.v;
+  if (v instanceof Pair) return `<span class="rv">${v.l.map((l, i) => `<span class="pr"><i>${l}</i>=${fmtNum(v.v[i], R.alt)}</span>`).join('')}</span>`;
+  if (isMat(v)) return matH(v);
+  if (isCx(v)) return cxStr(v, R.polar != null ? R.polar : S.set.cplx === 'polar', R.alt);
+  return fmtNum(v, R.alt);
+}
+
+/* ================= Acciones de teclas ================= */
+const ACT = {};
+for (let d = 0; d < 10; d++) ACT['d' + d] = { mk: () => K(String(d), String(d), 'num') };
+const fnK = (d, m) => ({ mk: () => K(d, m, 'fn') });
+const valK = (d, m) => ({ mk: () => K(d, m, 'val') });
+Object.assign(ACT, {
+  dot: { mk: () => K('.', '.', 'num') },
+  add: { mk: () => K('+', '+', 'op') }, sub: { mk: () => K(MINUS, '-', 'op') },
+  mul: { mk: () => K('×', '*', 'op') }, div: { mk: () => K('÷', '/', 'op') },
+  neg: { mk: () => K('<small>−</small>', '-', 'op') },
+  lp: { mk: () => K('(', '(', 'open') }, rp: { mk: () => K(')', ')', 'close') }, comma: { mk: () => K(',', ',', 'comma') },
+  ans: valK('Ans', 'Ans'), preans: valK('PreAns', 'PreAns'),
+  E10: { mk: () => T('E10', 1), fl: () => K('ᴇ', 'e', 'E') },
+  frac: { mk: () => T('frac', 2), fl: () => K('÷', '/', 'op') },
+  mixed: { mk: () => T('mixed', 3) },
+  sqrt: { mk: () => T('sqrt', 1), fl: () => K('√(', 'sqrt(', 'fn') },
+  cbrt: { mk: () => T('root', 2, [[K('3', '3', 'num')], []]), enter: 1, fl: () => K('∛(', 'cbrt(', 'fn') },
+  root: { mk: () => T('root', 2) },
+  sq: { mk: () => T('pow', 1, [[K('2', '2', 'num')]]), enter: null, fl: () => K('²', '^2', 'post') },
+  cube: { mk: () => T('pow', 1, [[K('3', '3', 'num')]]), enter: null, fl: () => K('³', '^3', 'post') },
+  inv: { mk: () => T('pow', 1, [[K(MINUS, '-', 'op'), K('1', '1', 'num')]]), enter: null, fl: () => K('⁻¹', '^(-1)', 'post') },
+  pow: { mk: () => T('pow', 1), fl: () => K('^(', '^(', 'op') },
+  p10: { mk: () => T('p10', 1), fl: () => K('10^(', '10^(', 'fn') },
+  pe: { mk: () => T('pe', 1), fl: () => K('e^(', 'e^(', 'fn') },
+  log: fnK('log(', 'log10('), ln: fnK('ln(', 'log('),
+  logb: { mk: () => T('logb', 2), fl: () => K('log(', 'log(', 'fn') },
+  abs: { mk: () => T('abs', 1), fl: () => K('Abs(', 'absx_(', 'fn') },
+  pct: { mk: () => K('%', '/100', 'post') }, fact: { mk: () => K('!', '!', 'post') },
+  sin: fnK('sin(', 'sin_('), cos: fnK('cos(', 'cos_('), tan: fnK('tan(', 'tan_('),
+  asin: fnK('sin<sup>−1</sup>(', 'asin_('), acos: fnK('cos<sup>−1</sup>(', 'acos_('), atan: fnK('tan<sup>−1</sup>(', 'atan_('),
+  sinh: fnK('sinh(', 'sinh('), cosh: fnK('cosh(', 'cosh('), tanh: fnK('tanh(', 'tanh('),
+  asinh: fnK('sinh<sup>−1</sup>(', 'asinh('), acosh: fnK('cosh<sup>−1</sup>(', 'acosh('), atanh: fnK('tanh<sup>−1</sup>(', 'atanh('),
+  int: { mk: () => T('int', 3) }, der: { mk: () => T('der', 2) }, sum: { mk: () => T('sum', 3) }, prod: { mk: () => T('prod', 3) },
+  x: valK('<i>x</i>', 'x'), y: valK('<i>y</i>', 'y'), z: valK('<i>z</i>', 'z'), i: valK('<i>i</i>', 'i'), vM: valK('M', 'M'),
+  vA: valK('A', 'A'), vB: valK('B', 'B'), vC: valK('C', 'C'), vD: valK('D', 'D'), vE: valK('E', 'E'), vF: valK('F', 'F'),
+  pi: valK('π', 'pi'), e: valK('<i>e</i>', 'e'),
+  npr: { mk: () => K('<b class="tk">P</b>', '~P~', 'inf') }, ncr: { mk: () => K('<b class="tk">C</b>', '~C~', 'inf') },
+  angle: { mk: () => K('∠', '~A~', 'inf') },
+  pol: fnK('Pol(', 'pol_('), rec: fnK('Rec(', 'rec_('), rnd: fnK('Rnd(', 'rnd_('),
+  ran: valK('Ran#', 'ranh_()'), ranint: fnK('RanInt#(', 'ranInt_('),
+  gcd: fnK('GCD(', 'gcd('), lcm: fnK('LCM(', 'lcm('), intf: fnK('Int(', 'fix('), intg: fnK('Intg(', 'floor('),
+  arg: fnK('Arg(', 'argc_('), conjg: fnK('Conjg(', 'conjg_('), rep: fnK('ReP(', 'rep_('), imp: fnK('ImP(', 'imp_('),
+  topol: { mk: () => K('▸r∠θ', '', 'post') }, torect: { mk: () => K('▸a+b<i>i</i>', '', 'post') },
+  det: fnK('Det(', 'det('), trn: fnK('Trn(', 'transpose('), idm: fnK('Identity(', 'identity('), ref: fnK('Ref(', 'ref_('), rref: fnK('Rref(', 'rref_('),
+  dotp: fnK('DotP(', 'dotp_('), crossp: fnK('CrossP(', 'crossp_('), vangle: fnK('Angle(', 'angle_('), unitv: fnK('UnitV(', 'unitv_(')
+});
+for (const k of 'ABCD') {
+  ACT['mat' + k] = valK('Mat' + k, 'Mat' + k); ACT['vct' + k] = valK('Vct' + k, 'Vct' + k);
+}
+ACT.matAns = valK('MatAns', 'MatAns'); ACT.vctAns = valK('VctAns', 'VctAns');
+const CONT = new Set(['add', 'sub', 'mul', 'div', 'pow', 'sq', 'cube', 'inv', 'fact', 'pct', 'npr', 'ncr']);
+function flatItem(a) {
+  const d = ACT[a]; if (!d) return null;
+  if (d.fl) return d.fl();
+  const it = d.mk(); return it.t === 'k' ? it : null;
+}
+
+/* ================= Editor natural ================= */
+function getSlot(path, root = S.expr) { let s = root; for (const [i, si] of path) s = s[i].s[si]; return s; }
+function samePath(a, b) { if (a.length !== b.length) return false; for (let i = 0; i < a.length; i++) if (a[i][0] !== b[i][0] || a[i][1] !== b[i][1]) return false; return true; }
+function insert(it, enter) {
+  const sl = getSlot(S.cur.path); sl.splice(S.cur.i, 0, it);
+  if (it.s && enter != null) { S.cur.path = S.cur.path.concat([[S.cur.i, enter]]); S.cur.i = 0; } else S.cur.i++;
+}
+function insertAct(a) {
+  const d = ACT[a], it = d.mk();
+  insert(it, it.s ? ('enter' in d ? d.enter : ORD[it.t][0]) : null);
+}
+function moveRight() {
+  const c = S.cur, sl = getSlot(c.path);
+  if (c.i < sl.length) { const it = sl[c.i]; if (it.s) { c.path = c.path.concat([[c.i, ORD[it.t][0]]]); c.i = 0; } else c.i++; return; }
+  if (c.path.length) {
+    const [pi, psi] = c.path[c.path.length - 1], pp = c.path.slice(0, -1), par = getSlot(pp)[pi], o = ORD[par.t], k = o.indexOf(psi);
+    if (k < o.length - 1) { c.path = pp.concat([[pi, o[k + 1]]]); c.i = 0; } else { c.path = pp; c.i = pi + 1; }
+    return;
+  }
+  c.i = 0;
+}
+function moveLeft() {
+  const c = S.cur, sl = getSlot(c.path);
+  if (c.i > 0) { const it = sl[c.i - 1]; if (it.s) { const o = ORD[it.t]; c.path = c.path.concat([[c.i - 1, o[o.length - 1]]]); c.i = getSlot(c.path).length; } else c.i--; return; }
+  if (c.path.length) {
+    const [pi, psi] = c.path[c.path.length - 1], pp = c.path.slice(0, -1), par = getSlot(pp)[pi], o = ORD[par.t], k = o.indexOf(psi);
+    if (k > 0) { c.path = pp.concat([[pi, o[k - 1]]]); c.i = getSlot(c.path).length; } else { c.path = pp; c.i = pi; }
+    return;
+  }
+  c.i = S.expr.length;
+}
+function vMove(dir) {
+  const p = S.cur.path;
+  for (let k = p.length - 1; k >= 0; k--) {
+    const [pi, si] = p[k], par = getSlot(p.slice(0, k))[pi]; let to = null;
+    if (par.t === 'frac') to = dir < 0 ? (si === 1 ? 0 : null) : (si === 0 ? 1 : null);
+    else if (par.t === 'mixed') { if (si === 1 && dir > 0) to = 2; if (si === 2 && dir < 0) to = 1; }
+    else if (['int', 'sum', 'prod'].includes(par.t)) { if (si === 1 && dir < 0) to = 2; if (si === 2 && dir > 0) to = 1; }
+    if (to != null) { S.cur.path = p.slice(0, k).concat([[pi, to]]); S.cur.i = getSlot(S.cur.path).length; return true; }
+  }
+  return false;
+}
+function del() {
+  const c = S.cur, sl = getSlot(c.path);
+  if (c.i > 0) {
+    const it = sl[c.i - 1];
+    if (it.s) {
+      if (it.s.every(x => !x.length)) { sl.splice(c.i - 1, 1); c.i--; }
+      else if (it.s.length === 1 && it.t !== 'pow' && it.t !== 'E10') { const inner = it.s[0]; sl.splice(c.i - 1, 1, ...inner); c.i = c.i - 1 + inner.length; }
+      else { const o = ORD[it.t]; c.path = c.path.concat([[c.i - 1, o[o.length - 1]]]); c.i = getSlot(c.path).length; }
+    } else { sl.splice(c.i - 1, 1); c.i--; }
+    return;
+  }
+  if (c.path.length) {
+    const [pi] = c.path[c.path.length - 1], pp = c.path.slice(0, -1), psl = getSlot(pp), par = psl[pi];
+    if (par.s.every(x => !x.length)) { psl.splice(pi, 1); c.path = pp; c.i = pi; }
+    else if (par.s.length === 1) { const inner = par.s[0]; psl.splice(pi, 1, ...inner); c.path = pp; c.i = pi; }
+    else moveLeft();
+  }
+}
+
+/* ================= Render del árbol ================= */
+const CUR = '<i class="cur"></i>';
+function rSlot(sl, path, cur, root) {
+  const here = cur && samePath(path, cur.path);
+  if (!sl.length) return root ? (here ? CUR : '') : `<span class="ph">${here ? CUR : ''}</span>`;
+  let h = '';
+  for (let i = 0; i <= sl.length; i++) { if (here && cur.i === i) h += CUR; if (i < sl.length) h += rItem(sl[i], path, i, cur); }
+  return h;
+}
+function rItem(it, path, i, cur) {
+  if (it.t === 'k') return `<span class="tk ${it.k}">${it.d}</span>`;
+  const r = si => rSlot(it.s[si], path.concat([[i, si]]), cur);
+  switch (it.t) {
+    case 'frac': return `<span class="frac"><span>${r(0)}</span><span>${r(1)}</span></span>`;
+    case 'mixed': return `<span class="tk">${r(0)}</span><span class="frac"><span>${r(1)}</span><span>${r(2)}</span></span>`;
+    case 'sqrt': return sqrtH(r(0));
+    case 'root': return `<span class="sqrt"><span class="ri">${r(0)}</span>${RAD}<span class="rr">${r(1)}</span></span>`;
+    case 'pow': return `<span class="sup">${r(0)}</span>`;
+    case 'p10': return `<span class="tk">10</span><span class="sup">${r(0)}</span>`;
+    case 'pe': return `<span class="tk"><i>e</i></span><span class="sup">${r(0)}</span>`;
+    case 'E10': return `<span class="x10">×10</span><span class="sup">${r(0)}</span>`;
+    case 'logb': return `<span class="tk">log</span><span class="sub">${r(0)}</span><span class="tk">(</span>${r(1)}<span class="tk">)</span>`;
+    case 'abs': return `<span class="abs">${r(0)}</span>`;
+    case 'int': return `<span class="bigop"><span class="lim">${r(2)}</span><span class="sym">∫</span><span class="lim">${r(1)}</span></span>${r(0)}<span class="dx">dx</span>`;
+    case 'der': return `<span class="frac"><span>d</span><span>d<i>x</i></span></span><span class="tk">(</span>${r(0)}<span class="tk">)</span><span class="sub"><i>x</i>=${r(1)}</span>`;
+    case 'sum': case 'prod': return `<span class="bigop"><span class="lim">${r(2)}</span><span class="sym">${it.t === 'sum' ? 'Σ' : '∏'}</span><span class="lim"><i>x</i>=${r(1)}</span></span><span class="tk">(</span>${r(0)}<span class="tk">)</span>`;
+  }
+  return '';
+}
+const rFlat = (toks, cur) => toks.map(t => `<span class="tk">${t.d}</span>`).join('') + (cur ? CUR : '');
+
+/* ================= Menús ================= */
+function pushMenu(m) { m.sel = m.sel || 0; S.stack.push(m); }
+function popMenu() { S.stack.pop(); }
+function runItem(it) {
+  if (it.sub) { pushMenu(it.sub()); return; }
+  if (it.keep) { it.act(); return; }
+  if (it.pop) { popMenu(); it.act(); return; }
+  S.stack = []; it.act();
+}
+function menuKey(a) {
+  const m = S.stack[S.stack.length - 1], n = m.items.length, cols = m.grid ? 4 : 1;
+  const mv = d => { m.sel = (m.sel + d + n) % n; };
+  if (a === 'up') mv(-cols); else if (a === 'down') mv(cols);
+  else if (a === 'left') { if (m.grid) mv(-1); else back(); }
+  else if (a === 'right') { if (m.grid) mv(1); else runItem(m.items[m.sel]); }
+  else if (a === 'ok') runItem(m.items[m.sel]);
+  else if (a === 'exe') { const it = m.items[m.sel]; if (it.alt) { it.alt(); } else runItem(it); }
+  else if (a === 'back') back();
+  else if (a === 'ac') { S.stack = []; ensureScreen(); }
+  else if (/^d[1-9]$/.test(a)) { const k = +a[1] - 1; if (k < n) { m.sel = k; runItem(m.items[k]); } }
+  else if (a === 'home') openHome();
+  function back() { popMenu(); if (!S.stack.length && !S.form && !S.view && APPS[S.app].kind === 'form') openHome(); }
+}
+function ensureScreen() { if (!S.stack.length && !S.form && !S.view && APPS[S.app].kind === 'form') APPS[S.app].enter(); }
+function vMenu(m) {
+  if (m.grid) return `<div class="ttl">${m.title}</div><div class="scroll full"><div class="home">${m.items.map((it, i) =>
+    `<button class="app${i === m.sel ? ' sel' : ''}" data-mi="${i}"><span class="ic">${it.ic}</span><span>${it.label}</span></button>`).join('')}</div></div>`;
+  return `<div class="ttl">${m.title}${m.info ? `<i>${m.info}</i>` : ''}</div><div class="scroll${m.hint ? '' : ' full'}">${m.items.map((it, i) => {
+    const lb = typeof it.label === 'function' ? it.label() : it.label;
+    return `<div class="row${i === m.sel ? ' sel' : ''}" data-mi="${i}"><span class="n">${i < 9 ? i + 1 : ''}</span><span class="lb">${lb}</span>${it.val ? `<span class="vl">${it.val()}</span>` : ''}${it.alt ? `<button class="rbtn" data-alt="${i}">${it.altLabel || 'Guardar'}</button>` : ''}${it.sub ? '<span class="ch">›</span>' : ''}</div>`;
+  }).join('')}</div>${m.hint ? `<div class="hint">${m.hint}</div>` : ''}`;
+}
+function insertTok(a) {
+  if (S.form) { formType(a); return; }
+  const kind = APPS[S.app].kind;
+  if (kind === 'base') return;
+  if (kind !== 'edit') { toast('Esta función se usa en Calcular'); return; }
+  startInput(a); insertAct(a);
+}
+function startInput(a) {
+  if (!S.done) return;
+  S.done = false;
+  if (CONT.has(a)) { S.expr = [K('Ans', 'Ans', 'val')]; S.cur = { path: [], i: 1 }; }
+  else { S.expr = []; S.cur = { path: [], i: 0 }; }
+}
+
+/* ================= Formularios (celdas) ================= */
+function mkForm(o) {
+  o.sel = o.sel || 0; o.cols = o.cols || 1;
+  o.fields.forEach(f => { f.toks = f.toks || []; f.fresh = true; if (!('val' in f)) f.val = null; });
+  S.form = o; return o;
+}
+function commitField(o) {
+  const f = o.fields[o.sel]; if (f.fresh) return true;
+  if (f.expr) { f.fresh = true; o.onCommit && o.onCommit(f); return true; }
+  if (!f.toks.length) { f.fresh = true; return true; }
+  try { f.val = evalNum(f.toks); f.toks = []; f.fresh = true; o.onCommit && o.onCommit(f); return true; }
+  catch (e) { throw mapErr(e); }
+}
+function formType(a) {
+  const o = S.form, f = o.fields[o.sel];
+  const it = flatItem(a); if (!it) { toast('No disponible en esta celda'); return; }
+  if (f.fresh) { f.toks = f.expr ? f.toks : []; f.fresh = false; }
+  f.toks.push(it);
+}
+function formKey(a) {
+  const o = S.form, n = o.fields.length, c = o.cols, f = o.fields[o.sel];
+  const go = to => { commitField(o); if (to >= 0 && to < n) o.sel = to; };
+  switch (a) {
+    case 'up': return go(o.sel - c);
+    case 'down': return go(o.sel + c);
+    case 'left': return c > 1 ? go(o.sel - 1) : undefined;
+    case 'right': return c > 1 ? go(o.sel + 1) : undefined;
+    case 'exe':
+      commitField(o);
+      if (o.sel < o.fields.length - 1) o.sel++;
+      else if (o.onLast) o.onLast(); else if (o.onOk) o.onOk();
+      return;
+    case 'ok': commitField(o); if (o.onOk) o.onOk(); return;
+    case 'del':
+      if (f.fresh) { f.fresh = false; f.toks = f.expr ? f.toks.slice(0, -1) : []; if (!f.expr) f.val = null; }
+      else f.toks.pop();
+      return;
+    case 'ac': f.toks = []; f.fresh = true; return;
+    case 'back': if (!f.fresh && !f.expr) { f.toks = []; f.fresh = true; return; } commitField(o); S.form = null; if (o.onBack) o.onBack(); else ensureScreen(); return;
+    case 'tools': { const t = APPS[S.app].tools; if (t) pushMenu(t()); return; }
+    case 'var': pushMenu(varMenu()); return;
+    case 'catalog': pushMenu(catalogMenu()); return;
+    case 'format': case 'sd': case 'approx': return;
+  }
+  if (ACT[a]) formType(a);
+}
+function fieldH(f, sel) {
+  if (!f.fresh) return rFlat(f.toks, sel);
+  if (f.expr) return f.toks.length ? rFlat(f.toks, false) : '';
+  return f.val == null ? '' : cellFmt(f.val);
+}
+function vForm(o) {
+  let h = `<div class="ttl">${o.title}${o.info ? `<i>${o.info}</i>` : ''}</div><div class="scroll">`;
+  if (o.cols === 1 && !o.grid) {
+    h += `<div class="fl">${o.fields.map((f, i) => `<div class="row${i === o.sel ? ' sel' : ''}" data-fi="${i}"><span class="lb">${f.label}</span><span class="vl m">${fieldH(f, i === o.sel)}</span></div>`).join('')}</div>`;
+  } else {
+    h += `<table class="grid"><tr>${o.rowHead ? '<th></th>' : ''}${o.colHead.map(x => `<th>${x}</th>`).join('')}</tr>`;
+    for (let r = 0; r < o.fields.length / o.cols; r++) {
+      h += `<tr>${o.rowHead ? `<th class="rh">${r + 1}</th>` : ''}`;
+      for (let k = 0; k < o.cols; k++) { const i = r * o.cols + k, f = o.fields[i]; h += `<td class="${i === o.sel ? 'sel' : ''}" data-fi="${i}">${fieldH(f, i === o.sel)}</td>`; }
+      h += '</tr>';
+    }
+    h += '</table>';
+  }
+  return h + `</div><div class="hint">${o.hint || 'EXE pasa a la siguiente celda. OK resuelve.'}</div>`;
+}
+
+/* ================= Vistas de resultados ================= */
+function vView(w) {
+  let h = `<div class="ttl">${w.title}${w.info ? `<i>${w.info}</i>` : ''}</div><div class="scroll${w.hint === false ? ' full' : ''}">`;
+  if (w.rows) h += `<div class="res">${w.rows.map((r, i) => `<div class="row${i === w.sel ? ' sel' : ''}" data-vi="${i}"><span class="lb m">${r[0]}</span><span class="vl">${r[1]}</span></div>`).join('')}</div>`;
+  if (w.table) h += `<table class="tbl"><tr>${w.table.head.map(x => `<th>${x}</th>`).join('')}</tr>${w.table.rows.map((r, i) => `<tr class="${i === w.sel ? 'sel' : ''}" data-vi="${i}">${r.map(c => `<td>${c}</td>`).join('')}</tr>`).join('')}</table>`;
+  return h + `</div>${w.hint === false ? '' : `<div class="hint">${w.hint || 'AC o Atrás vuelve a los datos.'}</div>`}`;
+}
+function viewKey(a) {
+  const w = S.view, n = (w.rows || w.table.rows).length;
+  if (a === 'up') w.sel = Math.max(0, w.sel - 1);
+  else if (a === 'down') w.sel = Math.min(n - 1, w.sel + 1);
+  else if (a === 'ac' || a === 'back' || a === 'left') { S.view = null; if (w.onBack) w.onBack(); else ensureScreen(); }
+  else if (a === 'exe' || a === 'ok') { if (w.onExe) w.onExe(); else w.sel = Math.min(n - 1, w.sel + 1); }
+  else if (a === 'tools') { const t = APPS[S.app].tools; if (t) pushMenu(t()); }
+}
+function showView(w) { w.sel = w.sel || 0; S.view = w; }
+
+/* ================= Calcular / Complejos / Matrices / Vectores ================= */
+function compute(dec) {
+  if (!S.expr.length) return;
+  const v = evalSlot(S.expr, S.app === 'cplx');
+  const last = S.expr[S.expr.length - 1];
+  const R = { v, alt: dec ? 'dec' : 'std', polar: null };
+  if (last && last.t === 'k' && last.m === '' && last.k === 'post') R.polar = last.d.startsWith('▸r');
+  if (v instanceof Pair) { S.vars.x = v.v[0]; S.vars.y = v.v[1]; }
+  else if (isMat(v)) { const a = v.toArray(); if (Array.isArray(a[0])) S.matAns = a; else S.vctAns = a; }
+  else { S.preAns = S.ans; S.ans = v; }
+  R.html = fmtRes(R);
+  S.res = R; S.done = true;
+  S.hist.push({ expr: clone(S.expr), res: R }); if (S.hist.length > 40) S.hist.shift();
+  S.hi = S.hist.length; save();
+}
+function toggleSD() {
+  const R = S.res; if (!R || isMat(R.v)) return;
+  const shownDec = R.alt === 'dec' || (R.alt === 'std' && S.set.res === 'dec');
+  R.alt = shownDec ? 'exact' : 'dec'; R.html = fmtRes(R);
+}
+function histNav(d) {
+  if (!S.hist.length) return;
+  const h = Math.max(0, Math.min(S.hist.length, S.hi + d)); S.hi = h;
+  if (h === S.hist.length) { S.expr = []; S.cur = { path: [], i: 0 }; S.done = false; S.res = null; return; }
+  const e = S.hist[h]; S.expr = clone(e.expr); S.res = e.res; S.res.html = fmtRes(S.res); S.done = true; S.cur = { path: [], i: S.expr.length };
+}
+function editKey(a) {
+  switch (a) {
+    case 'exe': case 'ok': compute(false); return;
+    case 'approx': compute(true); return;
+    case 'sd': if (!S.done) { if (!S.expr.length) return; compute(false); } toggleSD(); return;
+    case 'ac': S.expr = []; S.cur = { path: [], i: 0 }; S.done = false; S.res = null; S.hi = S.hist.length; return;
+    case 'del': if (S.done) { S.done = false; S.cur = { path: [], i: S.expr.length }; } del(); return;
+    case 'left': if (S.done) { S.done = false; S.cur = { path: [], i: S.expr.length }; return; } moveLeft(); return;
+    case 'right': if (S.done) { S.done = false; S.cur = { path: [], i: 0 }; return; } moveRight(); return;
+    case 'up': if (!S.done && vMove(-1)) return; histNav(-1); return;
+    case 'down': if (!S.done && vMove(1)) return; histNav(1); return;
+    case 'tools': pushMenu(APPS[S.app].tools()); return;
+    case 'format': if (S.done && S.res) pushMenu(formatMenu()); else toast('Calcula primero con EXE'); return;
+    case 'var': pushMenu(varMenu()); return;
+    case 'catalog': pushMenu(catalogMenu()); return;
+    case 'back': return;
+  }
+  if (ACT[a]) { startInput(a); insertAct(a); }
+}
+const ins = (label, a) => ({ label, act: () => insertTok(a) });
+function memItems() {
+  return [
+    { label: 'M+ (suma Ans a M)', act: () => { if (!isNum(S.ans) || !isNum(S.vars.M)) fail('arg'); S.vars.M += S.ans; save(); toast('M = ' + shortDec(S.vars.M).replace(/<[^>]+>/g, '')); } },
+    { label: 'M− (resta Ans de M)', act: () => { if (!isNum(S.ans) || !isNum(S.vars.M)) fail('arg'); S.vars.M -= S.ans; save(); toast('M = ' + shortDec(S.vars.M).replace(/<[^>]+>/g, '')); } },
+    { label: 'Borrar historial', act: () => { S.hist = []; S.hi = 0; toast('Historial borrado'); } },
+    { label: 'Borrar variables', act: () => { for (const k of VARS) S.vars[k] = 0; save(); toast('Variables en cero'); } }
+  ];
+}
+const calcTools = () => ({ title: 'Opciones', items: memItems() });
+const cplxTools = () => ({ title: 'Opciones de complejos', items: [ins('<i>i</i> unidad imaginaria', 'i'), ins('∠ forma polar', 'angle'), ins('Arg (argumento)', 'arg'), ins('Conjg (conjugado)', 'conjg'), ins('ReP (parte real)', 'rep'), ins('ImP (parte imaginaria)', 'imp'), ins('▸r∠θ (mostrar polar)', 'topol'), ins('▸a+b<i>i</i> (mostrar rectangular)', 'torect'), ...memItems()] });
+const dimStr = a => Array.isArray(a[0]) ? `${a.length}×${a[0].length}` : `${a.length} elementos`;
+function defMenu(kind) {
+  const isM = kind === 'mat', store = isM ? S.mats : S.vcts, pre = isM ? 'Mat' : 'Vct';
+  return {
+    title: isM ? 'Definir matriz' : 'Definir vector', items: 'ABCD'.split('').map(k => ({
+      label: pre + k, val: () => store[k] ? dimStr(store[k]) : 'sin definir',
+      sub: () => store[k] ? { title: pre + k, items: [{ label: 'Editar valores', act: () => editMV(kind, k) }, { label: 'Cambiar dimensión', sub: () => dimMenu(kind, k) }, { label: 'Eliminar', act: () => { delete store[k]; save(); toast(pre + k + ' eliminada'); } }] } : dimMenu(kind, k)
+    }))
+  };
+}
+function dimMenu(kind, k) {
+  if (kind === 'vct') return { title: 'Dimensión de Vct' + k, items: [2, 3].map(n => ({ label: n + ' elementos', act: () => { S.vcts[k] = Array(n).fill(0); editMV(kind, k); } })) };
+  return { title: 'Filas de Mat' + k, items: [1, 2, 3, 4].map(r => ({ label: r + (r > 1 ? ' filas' : ' fila'), sub: () => ({ title: 'Columnas de Mat' + k, items: [1, 2, 3, 4].map(c => ({ label: c + (c > 1 ? ' columnas' : ' columna'), act: () => { S.mats[k] = Array.from({ length: r }, () => Array(c).fill(0)); editMV(kind, k); } })) }) })) };
+}
+function editMV(kind, k) {
+  const isM = kind === 'mat', a = isM ? S.mats[k] : S.vcts[k];
+  const cols = isM ? a[0].length : a.length, flat = isM ? a.flat() : a.slice();
+  mkForm({
+    title: (isM ? 'Mat' : 'Vct') + k, info: dimStr(a), grid: true, cols, rowHead: isM, colHead: Array.from({ length: cols }, (_, i) => i + 1),
+    fields: flat.map(v => ({ val: v })), hint: 'EXE pasa a la siguiente celda. OK termina.',
+    onCommit: () => {
+      const v = S.form.fields.map(f => f.val ?? 0);
+      if (isM) S.mats[k] = Array.from({ length: a.length }, (_, r) => v.slice(r * cols, r * cols + cols)); else S.vcts[k] = v;
+      save();
+    },
+    onOk: () => { S.form = null; toast((isM ? 'Mat' : 'Vct') + k + ' guardada'); }
+  });
+}
+const matTools = () => ({ title: 'Opciones de matrices', items: [{ label: 'Definir o editar matriz', sub: () => defMenu('mat') }, ...'ABCD'.split('').map(k => ins('Mat' + k, 'mat' + k)), ins('MatAns', 'matAns'), ins('Det (determinante)', 'det'), ins('Trn (transpuesta)', 'trn'), ins('Identity (identidad)', 'idm'), ins('Ref (escalonada)', 'ref'), ins('Rref (escalonada reducida)', 'rref'), ins('Inversa: tecla <i>x</i><sup>−1</sup>', 'inv')] });
+const vctTools = () => ({ title: 'Opciones de vectores', items: [{ label: 'Definir o editar vector', sub: () => defMenu('vct') }, ...'ABCD'.split('').map(k => ins('Vct' + k, 'vct' + k)), ins('VctAns', 'vctAns'), ins('DotP (producto punto)', 'dotp'), ins('CrossP (producto cruz)', 'crossp'), ins('Angle (ángulo entre vectores)', 'vangle'), ins('UnitV (vector unitario)', 'unitv'), ins('Abs (norma)', 'abs')] });
+
+function formatMenu() {
+  const R = S.res, v = R.v;
+  const set = (alt, polar) => () => { R.alt = alt; if (polar !== undefined) R.polar = polar; R.html = fmtRes(R); };
+  let items;
+  if (isCx(v)) items = [{ label: 'Rectangular a+b<i>i</i>', act: set('std', false) }, { label: 'Polar r∠θ', act: set('std', true) }, { label: 'Decimal', act: set('dec') }];
+  else if (isNum(v) || v instanceof Pair) items = [['std', 'Estándar'], ['dec', 'Decimal'], ['exact', 'Fracción o raíz exacta'], ['mixed', 'Fracción mixta'], ['eng', 'Ingeniería (×10³ⁿ)'], ['sci', 'Notación científica'], ['prime', 'Factores primos'], ['dms', 'Sexagesimal (° ′ ″)']].map(([a, l]) => ({ label: l, act: set(a) }));
+  else items = [{ label: 'Estándar', act: set('std') }];
+  return { title: 'Formato del resultado', items };
+}
+function cellAny(v) { return isCx(v) ? cxStr(v, false) : isMat(v) ? 'matriz' : cellFmt(v); }
+const VAR_ACT = { A: 'vA', B: 'vB', C: 'vC', D: 'vD', E: 'vE', F: 'vF', x: 'x', y: 'y', z: 'z', M: 'vM' };
+function varMenu() {
+  return {
+    title: 'Variables', hint: 'OK inserta la variable. EXE o Guardar copia Ans en ella.', items: VARS.map(n => ({
+      label: () => `<span class="m">${'xyz'.includes(n) ? `<i>${n}</i>` : n} = ${cellAny(S.vars[n])}</span>`,
+      act: () => insertTok(VAR_ACT[n]),
+      alt: () => { if (!isNum(S.ans) && !isCx(S.ans)) fail('arg'); S.vars[n] = S.ans; save(); toast('Ans guardado en ' + n); }
+    }))
+  };
+}
+const CONSTS = [['c₀', '299792458', 'Velocidad de la luz'], ['<i>h</i>', '6.62607015e-34', 'Constante de Planck'], ['ħ', '1.054571817e-34', 'Planck reducida'],
+  ['qₑ', '1.602176634e-19', 'Carga elemental'], ['mₑ', '9.1093837015e-31', 'Masa del electrón'], ['mₚ', '1.67262192369e-27', 'Masa del protón'],
+  ['mₙ', '1.67492749804e-27', 'Masa del neutrón'], ['u', '1.66053906660e-27', 'Unidad de masa atómica'], ['Nₐ', '6.02214076e23', 'Número de Avogadro'],
+  ['k', '1.380649e-23', 'Constante de Boltzmann'], ['R', '8.314462618', 'Constante de los gases'], ['F', '96485.33212', 'Constante de Faraday'],
+  ['G', '6.67430e-11', 'Gravitación universal'], ['g', '9.80665', 'Gravedad estándar'], ['ε₀', '8.8541878128e-12', 'Permitividad del vacío'],
+  ['μ₀', '1.25663706212e-6', 'Permeabilidad del vacío'], ['σ', '5.670374419e-8', 'Stefan-Boltzmann'], ['a₀', '5.29177210903e-11', 'Radio de Bohr'],
+  ['Vₘ', '0.02241396954', 'Volumen molar (0 °C, 1 atm)'], ['atm', '101325', 'Atmósfera estándar (Pa)'], ['R∞', '10973731.568160', 'Constante de Rydberg'],
+  ['Z₀', '376.730313668', 'Impedancia del vacío'], ['t', '273.15', 'Cero Celsius en kelvin']];
+CONSTS.forEach((c, i) => { ACT['c' + i] = { mk: () => K(c[0], '(' + c[1] + ')', 'val') }; });
+const CONV = [['in▸cm', 2.54], ['cm▸in', 1 / 2.54], ['ft▸m', 0.3048], ['m▸ft', 1 / 0.3048], ['yd▸m', 0.9144], ['m▸yd', 1 / 0.9144],
+  ['mile▸km', 1.609344], ['km▸mile', 1 / 1.609344], ['n mile▸m', 1852], ['m▸n mile', 1 / 1852], ['gal(US)▸L', 3.785411784], ['L▸gal(US)', 1 / 3.785411784],
+  ['bbl▸L', 158.987294928], ['L▸bbl', 1 / 158.987294928], ['oz▸g', 28.349523125], ['g▸oz', 1 / 28.349523125], ['lb▸kg', 0.45359237], ['kg▸lb', 1 / 0.45359237],
+  ['km/h▸m/s', 1 / 3.6], ['m/s▸km/h', 3.6], ['psi▸kPa', 6.894757293168], ['kPa▸psi', 1 / 6.894757293168], ['psi▸bar', 0.06894757293168], ['bar▸psi', 1 / 0.06894757293168],
+  ['atm▸Pa', 101325], ['Pa▸atm', 1 / 101325], ['mmHg▸kPa', 0.133322387415], ['kPa▸mmHg', 1 / 0.133322387415], ['kgf/cm²▸kPa', 98.0665], ['kPa▸kgf/cm²', 1 / 98.0665],
+  ['hp▸kW', 0.745699872], ['kW▸hp', 1 / 0.745699872], ['kgf▸N', 9.80665], ['N▸kgf', 1 / 9.80665], ['cal▸J', 4.184], ['J▸cal', 1 / 4.184], ['°F▸°C', 'FtoC_'], ['°C▸°F', 'CtoF_']];
+CONV.forEach((c, i) => { ACT['u' + i] = typeof c[1] === 'string' ? fnK(c[0] + '(', c[1] + '(') : { mk: () => K(`<small>${c[0]}</small>`, '*(' + c[1] + ')', 'post') }; });
+const listIns = (title, arr) => ({ title, items: arr.map(([a, l]) => ins(l, a)) });
+function catalogMenu() {
+  return {
+    title: 'Catálogo', items: [
+      { label: 'Funciones', sub: () => listIns('Funciones', [['sinh', 'sinh'], ['cosh', 'cosh'], ['tanh', 'tanh'], ['asinh', 'sinh<sup>−1</sup>'], ['acosh', 'cosh<sup>−1</sup>'], ['atanh', 'tanh<sup>−1</sup>'], ['logb', 'log<sub>a</sub>(b)'], ['abs', 'Abs (valor absoluto)'], ['intf', 'Int (parte entera)'], ['intg', 'Intg (mayor entero ≤ x)'], ['rnd', 'Rnd (redondeo de pantalla)'], ['gcd', 'GCD (MCD)'], ['lcm', 'LCM (MCM)'], ['ran', 'Ran# (aleatorio 0 a 1)'], ['ranint', 'RanInt# (entero aleatorio)'], ['pol', 'Pol (a polares)'], ['rec', 'Rec (a rectangulares)'], ['npr', 'nPr (permutaciones)'], ['ncr', 'nCr (combinaciones)'], ['fact', 'x! (factorial)'], ['pct', '% (porcentaje)'], ['der', 'd/dx (derivada en un punto)'], ['int', '∫ (integral definida)'], ['sum', 'Σ (sumatoria)'], ['prod', '∏ (productoria)'], ['cbrt', '∛ (raíz cúbica)'], ['root', 'ⁿ√ (raíz enésima)'], ['mixed', 'Fracción mixta']]) },
+      { label: 'Números complejos', sub: cplxTools },
+      { label: 'Matrices y vectores', sub: () => listIns('Matrices y vectores', [...'ABCD'.split('').map(k => ['mat' + k, 'Mat' + k]), ['matAns', 'MatAns'], ['det', 'Det'], ['trn', 'Trn'], ['idm', 'Identity'], ['ref', 'Ref'], ['rref', 'Rref'], ...'ABCD'.split('').map(k => ['vct' + k, 'Vct' + k]), ['vctAns', 'VctAns'], ['dotp', 'DotP'], ['crossp', 'CrossP'], ['vangle', 'Angle'], ['unitv', 'UnitV']]) },
+      { label: 'Constantes científicas', sub: () => ({ title: 'Constantes científicas', items: CONSTS.map((c, i) => ({ label: `<span class="m">${c[0]}</span> ${c[2]}`, act: () => insertTok('c' + i) })) }) },
+      { label: 'Conversión de unidades', sub: () => ({ title: 'Conversión de unidades', items: CONV.map((c, i) => ({ label: c[0].replace('▸', ' ▸ '), act: () => insertTok('u' + i) })) }) },
+      { label: 'Variables', sub: varMenu }
+    ]
+  };
+}
+
+/* ================= Ajustes ================= */
+const fmtName = () => ({ norm1: 'Norm 1', norm2: 'Norm 2', fix: 'Fix ' + S.set.fix, sci: 'Sci ' + S.set.sci })[S.set.fmt];
+function applySettings() {
+  document.body.classList.toggle('lcd-dark', S.set.lcd === 'dark');
+  if (S.res) S.res.html = fmtRes(S.res);
+}
+function choice(title, key, opts) {
+  return { title, sel: Math.max(0, opts.findIndex(o => o[0] === S.set[key])), items: opts.map(([v, l]) => ({ label: l, pop: true, act: () => { S.set[key] = v; applySettings(); save(); } })) };
+}
+function settingsMenu() {
+  return {
+    title: 'Ajustes', items: [
+      { label: 'Unidad angular', val: () => ({ D: 'Grados', R: 'Radianes', G: 'Gradianes' })[S.set.angle], sub: () => choice('Unidad angular', 'angle', [['D', 'Grados (D)'], ['R', 'Radianes (R)'], ['G', 'Gradianes (G)']]) },
+      {
+        label: 'Formato numérico', val: fmtName, sub: () => ({
+          title: 'Formato numérico', items: [
+            { label: 'Norm 1 (científica si |x| < 0,01)', pop: true, act: () => { S.set.fmt = 'norm1'; applySettings(); save(); } },
+            { label: 'Norm 2 (científica si |x| < 10⁻⁹)', pop: true, act: () => { S.set.fmt = 'norm2'; applySettings(); save(); } },
+            { label: 'Fix (decimales fijos)', sub: () => ({ title: 'Decimales fijos', sel: S.set.fix, items: Array.from({ length: 10 }, (_, n) => ({ label: 'Fix ' + n, act: () => { S.set.fmt = 'fix'; S.set.fix = n; applySettings(); save(); toast('Formato Fix ' + n); } })) }) },
+            { label: 'Sci (cifras significativas)', sub: () => ({ title: 'Cifras significativas', sel: S.set.sci - 1, items: Array.from({ length: 10 }, (_, n) => ({ label: 'Sci ' + (n + 1), act: () => { S.set.fmt = 'sci'; S.set.sci = n + 1; applySettings(); save(); toast('Formato Sci ' + (n + 1)); } })) }) }
+          ]
+        })
+      },
+      { label: 'Resultado', val: () => S.set.res === 'exact' ? 'Exacto' : 'Decimal', sub: () => choice('Tipo de resultado', 'res', [['exact', 'Exacto: fracciones, raíces y π'], ['dec', 'Decimal']]) },
+      { label: 'Números complejos', val: () => S.set.cplx === 'polar' ? 'r∠θ' : 'a+bi', sub: () => choice('Formato complejo', 'cplx', [['rect', 'Rectangular a+bi'], ['polar', 'Polar r∠θ']]) },
+      { label: 'Pantalla', val: () => S.set.lcd === 'dark' ? 'Oscura' : 'LCD clásica', sub: () => choice('Pantalla', 'lcd', [['classic', 'LCD clásica'], ['dark', 'Oscura con tinta ámbar']]) },
+      { label: 'Vibración al tocar', val: () => S.set.haptic ? 'Activada' : 'Desactivada', keep: true, act: () => { S.set.haptic = !S.set.haptic; save(); } },
+      { label: 'Restablecer todo', sub: () => ({ title: '¿Restablecer la calculadora?', items: [{ label: 'Sí: borra ajustes, variables, matrices y datos', act: resetAll }, { label: 'Cancelar', pop: true, act: () => { } }] }) }
+    ]
+  };
+}
+function resetAll() {
+  S.set = { ...DEF_SET }; for (const k of VARS) S.vars[k] = 0; S.ans = 0; S.preAns = 0;
+  S.mats = {}; S.vcts = {}; S.matAns = null; S.vctAns = null; S.st = { type: '1v', data: [] }; S.eq = {}; S.tb = { f: [], g: [], a: 1, b: 5, s: 1 }; S.hist = []; S.hi = 0;
+  applySettings(); save(); openApp('calc'); toast('Calculadora restablecida');
+}
+
+/* ================= Inicio ================= */
+const HOME_APPS = [['calc', 'Calcular', '×÷'], ['cplx', 'Complejos', '<i>i</i>'], ['base', 'Base-N', '0x'], ['mat', 'Matrices', '[ ]'], ['vct', 'Vectores', '→'], ['stat', 'Estadística', 'x̄'],
+  ['dist', 'Distribución', 'σ'], ['eqn', 'Ecuaciones', '='], ['ineq', 'Inecuaciones', '&gt;'], ['table', 'Tabla', 'f(<i>x</i>)'], ['ratio', 'Proporción', 'a:b'], ['set', 'Ajustes', '⚙']];
+function openHome() {
+  S.stack = []; S.err = null;
+  pushMenu({ title: 'Inicio', grid: true, sel: Math.max(0, HOME_APPS.findIndex(a => a[0] === S.app)), items: HOME_APPS.map(([id, l, ic]) => id === 'set' ? { label: l, ic, sub: settingsMenu } : { label: l, ic, act: () => openApp(id) }) });
+}
+function openApp(id) {
+  if (!APPS[id]) id = 'calc';
+  S.app = id; S.stack = []; S.form = null; S.view = null; S.err = null; S.done = false; S.res = null;
+  S.expr = []; S.cur = { path: [], i: 0 }; S.hist = []; S.hi = 0;
+  relabel(); if (APPS[id].enter) APPS[id].enter(); save();
+}
+
+/* ================= Base-N ================= */
+const BASES = { 10: 'Dec', 16: 'Hex', 2: 'Bin', 8: 'Oct' };
+const BASEMAP = { frac: ['Dec', 'b10'], sqrt: ['Hex', 'b16'], sq: ['Bin', 'b2'], pow: ['Oct', 'b8'], log: ['A', 'hA'], ln: ['B', 'hB'], neg: ['C', 'hC'], x: ['D', 'hD'], inv: ['E', 'hE'], sin: ['F', 'hF'],
+  cos: ['and', 'and'], tan: ['or', 'or'], int: ['xor', 'xor'], sum: ['xnor', 'xnor'], sd: ['Not', 'not'], logb: ['Neg', 'negf'] };
+const BOPS = { add: '+', sub: MINUS, mul: '×', div: '÷', lp: '(', rp: ')', and: ' and ', or: ' or ', xor: ' xor ', xnor: ' xnor ', not: 'Not(', negf: 'Neg(' };
+function tokOf(a) {
+  if (/^d\d$/.test(a)) return a[1];
+  if (/^[hv][A-F]$/.test(a)) return a[1];
+  return BOPS[a] ?? null;
+}
+function baseKey(a) {
+  const B = S.base;
+  if (/^b(10|16|2|8)$/.test(a)) { B.b = +a.slice(1); save(); return; }
+  switch (a) {
+    case 'exe': case 'ok': baseEval(); return;
+    case 'ac': B.toks = []; B.done = false; B.res = null; return;
+    case 'del': B.done = false; B.toks.pop(); return;
+    case 'left': case 'right': B.done = false; return;
+    case 'tools': pushMenu(baseTools()); return;
+    case 'ans': if (B.done) { B.done = false; B.toks = []; } B.toks.push('Ans'); return;
+  }
+  const t = tokOf(a); if (t == null) { if (ACT[a]) toast('Esa tecla no funciona en Base-N'); return; }
+  if (B.done) { B.done = false; B.toks = ['+', MINUS, '×', '÷', ' and ', ' or ', ' xor ', ' xnor '].includes(t) ? ['Ans'] : []; }
+  B.toks.push(t);
+}
+function baseTools() {
+  const set = b => () => { S.base.b = b; save(); };
+  const op = a => () => baseKey(a);
+  return { title: 'Opciones de Base-N', items: [{ label: 'Decimal (Dec)', act: set(10) }, { label: 'Hexadecimal (Hex)', act: set(16) }, { label: 'Binario (Bin)', act: set(2) }, { label: 'Octal (Oct)', act: set(8) },
+    { label: 'and', act: op('and') }, { label: 'or', act: op('or') }, { label: 'xor', act: op('xor') }, { label: 'xnor', act: op('xnor') }, { label: 'Not( complemento', act: op('not') }, { label: 'Neg( negativo', act: op('negf') }] };
+}
+const chk32 = v => { if (v < -2147483648 || v > 2147483647) fail('math'); return v; };
+function parseLit(s, b) {
+  for (const ch of s) if (parseInt(ch, 16) >= b) fail('syntax');
+  let v = parseInt(s, b);
+  if (b === 10) return chk32(v);
+  if (v >= 4294967296) fail('math');
+  return v >= 2147483648 ? v - 4294967296 : v;
+}
+function baseEval() {
+  const B = S.base; if (!B.toks.length) return;
+  const toks = []; let buf = '';
+  const flush = () => { if (buf) { toks.push({ n: parseLit(buf, B.b) }); buf = ''; } };
+  for (const t of B.toks) { if (/^[0-9A-F]$/.test(t)) buf += t; else { flush(); toks.push({ o: t.trim() }); } }
+  flush();
+  let p = 0; const peek = () => toks[p], is = o => peek() && peek().o === o;
+  const closeIf = () => { if (is(')')) p++; };
+  function prim() {
+    const t = toks[p++]; if (!t) fail('syntax');
+    if ('n' in t) return t.n;
+    switch (t.o) {
+      case 'Ans': return B.ans || 0;
+      case '(': { const v = orx(); closeIf(); return v; }
+      case 'Not(': { const v = orx(); closeIf(); return ~v; }
+      case 'Neg(': { const v = orx(); closeIf(); return chk32(-v); }
+      case MINUS: return chk32(-prim());
+      case '+': return prim();
+    }
+    fail('syntax');
+  }
+  function mul() { let v = prim(); while (is('×') || is('÷')) { const o = toks[p++].o, r = prim(); if (o === '×') v = chk32(v * r); else { if (r === 0) fail('math'); v = chk32(Math.trunc(v / r)); } } return v; }
+  function add() { let v = mul(); while (is('+') || is(MINUS)) { const o = toks[p++].o, r = mul(); v = chk32(o === '+' ? v + r : v - r); } return v; }
+  function andx() { let v = add(); while (is('and')) { p++; v = v & add(); } return v; }
+  function orx() { let v = andx(); while (is('or') || is('xor') || is('xnor')) { const o = toks[p++].o, r = andx(); v = o === 'or' ? v | r : o === 'xor' ? v ^ r : ~(v ^ r); } return v; }
+  const v = orx(); if (p < toks.length) fail('syntax');
+  B.res = v; B.ans = v; B.done = true;
+}
+function fmtBase(v, b, full) {
+  const u = v >>> 0;
+  if (b === 10) return neg(String(v));
+  if (b === 16) return full ? u.toString(16).toUpperCase().padStart(8, '0') : u.toString(16).toUpperCase();
+  if (b === 8) return full ? u.toString(8).padStart(11, '0') : u.toString(8);
+  if (!full) return u.toString(2);
+  const s = u.toString(2).padStart(32, '0').match(/.{4}/g); return s.slice(0, 4).join(' ') + '<br>' + s.slice(4).join(' ');
+}
+function vBase() {
+  const B = S.base;
+  let h = `<div class="base"><div class="bexpr">${B.toks.map(t => `<span>${t}</span>`).join('')}${B.done ? '' : CUR}</div>`;
+  if (B.done && B.res != null) {
+    h += `<div class="big${B.b === 2 ? ' bin' : ''}">${fmtBase(B.res, B.b, true)}</div>`;
+    h += `<div class="others">${[10, 16, 2, 8].filter(x => x !== B.b).map(x => `<div><b>${BASES[x]}</b>${fmtBase(B.res, x, false)}</div>`).join('')}</div>`;
+  } else h += `<div class="hint">La fila superior cambia la base y escribe A a F. Opciones lista los operadores lógicos.</div>`;
+  return h + '</div>';
+}
+
+/* ================= Estadística ================= */
+const STYPES = [['1v', '1 variable'], ['lin', 'y = a + b<i>x</i>'], ['quad', 'y = a + b<i>x</i> + c<i>x</i>²'], ['log', 'y = a + b·ln <i>x</i>'], ['eexp', 'y = a·e<sup>b<i>x</i></sup>'], ['abexp', 'y = a·b<sup><i>x</i></sup>'], ['pow', 'y = a·<i>x</i><sup>b</sup>'], ['inv', 'y = a + b/<i>x</i>']];
+const stName = () => STYPES.find(t => t[0] === S.st.type)[1];
+function statEnter() {
+  pushMenu({ title: 'Tipo de cálculo estadístico', sel: Math.max(0, STYPES.findIndex(t => t[0] === S.st.type)), items: STYPES.map(([id, l]) => ({ label: l, act: () => { S.st.type = id; save(); statForm(); } })) });
+}
+function statForm(sel) {
+  const two = S.st.type !== '1v', cols = two ? 2 : 1, fields = [];
+  for (const r of S.st.data) for (let k = 0; k < cols; k++) fields.push({ val: r[k] ?? null });
+  for (let k = 0; k < cols; k++) fields.push({ val: null });
+  mkForm({
+    title: 'Datos', info: stName(), grid: true, cols, rowHead: true, colHead: two ? ['<i>x</i>', '<i>y</i>'] : ['<i>x</i>'], fields,
+    sel: sel ?? Math.max(0, fields.length - cols), hint: 'OK calcula. Opciones: tipo, borrar fila o datos.',
+    onCommit: statSync, onOk: statCalc, onLast: () => { }, onBack: statEnter
+  });
+}
+function statSync() {
+  const o = S.form, c = o.cols, rows = [];
+  for (let i = 0; i < o.fields.length; i += c) rows.push(o.fields.slice(i, i + c).map(f => f.val));
+  while (rows.length && rows[rows.length - 1].every(v => v == null)) rows.pop();
+  S.st.data = rows;
+  while (o.fields.length < rows.length * c + c) o.fields.push({ val: null, toks: [], fresh: true });
+  save();
+}
+const statTools = () => ({
+  title: 'Opciones de estadística', items: [
+    { label: 'Calcular resultados', act: () => { if (S.form) statCalc(); } },
+    { label: 'Cambiar tipo de cálculo', act: () => { S.form = null; S.view = null; statEnter(); } },
+    { label: 'Eliminar fila actual', act: () => { if (!S.form) return; const r = Math.floor(S.form.sel / S.form.cols); S.st.data.splice(r, 1); save(); statForm(Math.min(r * S.form.cols, S.st.data.length * S.form.cols)); } },
+    { label: 'Borrar todos los datos', act: () => { S.st.data = []; save(); S.view = null; statForm(0); toast('Datos borrados'); } }
+  ]
+});
+const sumOf = a => a.reduce((s, v) => s + v, 0);
+const median = s => { const n = s.length, h = Math.floor(n / 2); return n % 2 ? s[h] : (s[h - 1] + s[h]) / 2; };
+function describe(X) {
+  const n = X.length, sum = sumOf(X), mean = sum / n, ss = sumOf(X.map(v => (v - mean) ** 2)), s = [...X].sort((a, b) => a - b), h = Math.floor(n / 2);
+  return { n, sum, sum2: sumOf(X.map(v => v * v)), mean, vp: ss / n, sp: Math.sqrt(ss / n), vs: n > 1 ? ss / (n - 1) : null, ss_: n > 1 ? Math.sqrt(ss / (n - 1)) : null,
+    min: s[0], max: s[n - 1], med: median(s), q1: n > 1 ? median(s.slice(0, h)) : s[0], q3: n > 1 ? median(s.slice(n - h)) : s[0] };
+}
+function linFit(X, Y) {
+  const n = X.length; if (n < 2) fail('data');
+  const mx = sumOf(X) / n, my = sumOf(Y) / n; let sxx = 0, sxy = 0, syy = 0;
+  for (let i = 0; i < n; i++) { const dx = X[i] - mx, dy = Y[i] - my; sxx += dx * dx; sxy += dx * dy; syy += dy * dy; }
+  if (!sxx) fail('math');
+  const b = sxy / sxx; return { a: my - b * mx, b, r: syy ? sxy / Math.sqrt(sxx * syy) : null };
+}
+function regress(t, X, Y) {
+  const pos = A => { if (A.some(v => v <= 0)) fail('math'); return A.map(Math.log); };
+  switch (t) {
+    case 'lin': return linFit(X, Y);
+    case 'log': return linFit(pos(X), Y);
+    case 'inv': if (X.some(v => v === 0)) fail('math'); return linFit(X.map(v => 1 / v), Y);
+    case 'eexp': { const f = linFit(X, pos(Y)); return { a: Math.exp(f.a), b: f.b, r: f.r }; }
+    case 'abexp': { const f = linFit(X, pos(Y)); return { a: Math.exp(f.a), b: Math.exp(f.b), r: f.r }; }
+    case 'pow': { const f = linFit(pos(X), pos(Y)); return { a: Math.exp(f.a), b: f.b, r: f.r }; }
+    case 'quad': {
+      const n = X.length; if (n < 3) fail('data');
+      const P = k => sumOf(X.map(x => x ** k)), Q = k => sumOf(X.map((x, i) => x ** k * Y[i]));
+      const R = rrefArr([[n, P(1), P(2), Q(0)], [P(1), P(2), P(3), Q(1)], [P(2), P(3), P(4), Q(2)]], true);
+      if ([0, 1, 2].some(i => Math.abs(R[i][i] - 1) > 1e-9)) fail('math');
+      const a = R[0][3], b = R[1][3], c = R[2][3], my = sumOf(Y) / n;
+      const sst = sumOf(Y.map(y => (y - my) ** 2)), sse = sumOf(X.map((x, i) => (Y[i] - (a + b * x + c * x * x)) ** 2));
+      return { a, b, c, R2: sst ? 1 - sse / sst : null };
+    }
+  }
+}
+function statCalc() {
+  const two = S.st.type !== '1v';
+  const rows = S.st.data.filter(r => r[0] != null && (!two || r[1] != null));
+  if (!rows.length) fail('data');
+  const X = rows.map(r => r[0]), dx = describe(X), F = v => v == null ? 'No definido' : fmtNum(v), out = [];
+  if (!two) {
+    out.push(['<i>n</i>', dx.n], ['<i>x̄</i>', dx.mean], ['Σ<i>x</i>', dx.sum], ['Σ<i>x</i>²', dx.sum2], ['σ²<sub><i>x</i></sub>', dx.vp], ['σ<sub><i>x</i></sub>', dx.sp], ['s²<sub><i>x</i></sub>', dx.vs], ['s<sub><i>x</i></sub>', dx.ss_],
+      ['mín(<i>x</i>)', dx.min], ['Q₁', dx.q1], ['Med', dx.med], ['Q₃', dx.q3], ['máx(<i>x</i>)', dx.max]);
+  } else {
+    const Y = rows.map(r => r[1]), dy = describe(Y), g = regress(S.st.type, X, Y);
+    out.push(['<i>n</i>', dx.n], ['<i>x̄</i>', dx.mean], ['<i>ȳ</i>', dy.mean], ['Σ<i>x</i>', dx.sum], ['Σ<i>y</i>', dy.sum], ['Σ<i>x</i>²', dx.sum2], ['Σ<i>y</i>²', dy.sum2], ['Σ<i>xy</i>', sumOf(X.map((x, i) => x * Y[i]))],
+      ['σ<sub><i>x</i></sub>', dx.sp], ['s<sub><i>x</i></sub>', dx.ss_], ['σ<sub><i>y</i></sub>', dy.sp], ['s<sub><i>y</i></sub>', dy.ss_], ['mín(<i>x</i>)', dx.min], ['máx(<i>x</i>)', dx.max], ['mín(<i>y</i>)', dy.min], ['máx(<i>y</i>)', dy.max],
+      ['a', g.a], ['b', g.b]);
+    if ('c' in g) out.push(['c', g.c], ['R²', g.R2]); else out.push(['r', g.r]);
+  }
+  showView({ title: 'Resultados', info: stName(), rows: out.map(([l, v]) => [l, F(v)]) });
+}
+
+/* ================= Distribución ================= */
+const DTYPES = [['npd', 'Normal PD (densidad)'], ['ncd', 'Normal CD (acumulada)'], ['ninv', 'Normal inversa'], ['bpd', 'Binomial PD'], ['bcd', 'Binomial CD'], ['ppd', 'Poisson PD'], ['pcd', 'Poisson CD']];
+const DF = { npd: [['<i>x</i>', 0], ['σ', 1], ['μ', 0]], ncd: [['Inferior', -1], ['Superior', 1], ['σ', 1], ['μ', 0]], ninv: [['Área (cola izquierda)', 0.5], ['σ', 1], ['μ', 0]],
+  bpd: [['<i>x</i>', 0], ['<i>N</i>', 10], ['<i>p</i>', 0.5]], bcd: [['Inferior', 0], ['Superior', 5], ['<i>N</i>', 10], ['<i>p</i>', 0.5]], ppd: [['<i>x</i>', 0], ['λ', 1]], pcd: [['Inferior', 0], ['Superior', 2], ['λ', 1]] };
+S.dv = {};
+function distEnter() { pushMenu({ title: 'Distribución', items: DTYPES.map(([id, l]) => ({ label: l, act: () => distForm(id) })) }); }
+function distForm(id) {
+  const vals = S.dv[id] || DF[id].map(f => f[1]);
+  mkForm({ title: DTYPES.find(t => t[0] === id)[1], fields: DF[id].map((f, i) => ({ label: f[0], val: vals[i] })), hint: 'EXE pasa al siguiente dato. OK calcula.',
+    onOk: () => distCalc(id), onLast: () => distCalc(id), onBack: distEnter });
+}
+function erfc(x) {
+  if (x < 0) return 2 - erfc(-x);
+  if (x < 2) return 1 - math.erf(x);
+  let f = 0; for (let k = 60; k >= 1; k--) f = (k / 2) / (x + f);
+  return Math.exp(-x * x) / Math.sqrt(Math.PI) / (x + f);
+}
+const Phi = z => z < 0 ? 0.5 * erfc(-z / Math.SQRT2) : 1 - 0.5 * erfc(z / Math.SQRT2);
+function invNorm(p) {
+  if (!(p > 0 && p < 1)) fail('arg');
+  const a = [-39.69683028665376, 220.9460984245205, -275.9285104469687, 138.357751867269, -30.66479806614716, 2.506628277459239],
+    b = [-54.47609879822406, 161.5858368580409, -155.6989798598866, 66.80131188771972, -13.28068155288572],
+    c = [-0.007784894002430293, -0.3223964580411365, -2.400758277161838, -2.549732539343734, 4.374664141464968, 2.938163982698783],
+    d = [0.007784695709041462, 0.3224671290700398, 2.445134137142996, 3.754408661907416];
+  const lo = 0.02425; let x, q, r;
+  if (p < lo) { q = Math.sqrt(-2 * Math.log(p)); x = (((((c[0] * q + c[1]) * q + c[2]) * q + c[3]) * q + c[4]) * q + c[5]) / ((((d[0] * q + d[1]) * q + d[2]) * q + d[3]) * q + 1); }
+  else if (p <= 1 - lo) { q = p - 0.5; r = q * q; x = (((((a[0] * r + a[1]) * r + a[2]) * r + a[3]) * r + a[4]) * r + a[5]) * q / (((((b[0] * r + b[1]) * r + b[2]) * r + b[3]) * r + b[4]) * r + 1); }
+  else { q = Math.sqrt(-2 * Math.log(1 - p)); x = -(((((c[0] * q + c[1]) * q + c[2]) * q + c[3]) * q + c[4]) * q + c[5]) / ((((d[0] * q + d[1]) * q + d[2]) * q + d[3]) * q + 1); }
+  for (let k = 0; k < 3; k++) { const e = Phi(x) - p, u = e * Math.sqrt(2 * Math.PI) * Math.exp(x * x / 2); x -= u / (1 + x * u / 2); }
+  return x;
+}
+function binPmf(x, N, p) {
+  if (x < 0 || x > N) return 0; if (p === 0) return x === 0 ? 1 : 0; if (p === 1) return x === N ? 1 : 0;
+  return Math.exp(lgamma(N + 1) - lgamma(x + 1) - lgamma(N - x + 1) + x * Math.log(p) + (N - x) * Math.log(1 - p));
+}
+const poiPmf = (x, l) => x < 0 ? 0 : Math.exp(x * Math.log(l) - l - lgamma(x + 1));
+function distCalc(id) {
+  const v = S.form.fields.map(f => { if (f.val == null) fail('data'); return f.val; }); S.dv[id] = v;
+  const sigOk = s => { if (!(s > 0)) fail('arg'); };
+  const intOk = (...a) => a.forEach(x => { if (!Number.isInteger(x) || x < 0) fail('arg'); });
+  const pOk = p => { if (!(p >= 0 && p <= 1)) fail('arg'); };
+  let res, lab = '<i>p</i>';
+  switch (id) {
+    case 'npd': sigOk(v[1]); res = Math.exp(-((v[0] - v[2]) ** 2) / (2 * v[1] ** 2)) / (v[1] * Math.sqrt(2 * Math.PI)); break;
+    case 'ncd': sigOk(v[2]); if (v[1] < v[0]) fail('arg'); res = Phi((v[1] - v[3]) / v[2]) - Phi((v[0] - v[3]) / v[2]); break;
+    case 'ninv': sigOk(v[1]); res = v[2] + v[1] * invNorm(v[0]); lab = '<i>x</i>'; break;
+    case 'bpd': intOk(v[0], v[1]); pOk(v[2]); if (v[1] > 1e5) fail('range'); res = binPmf(v[0], v[1], v[2]); break;
+    case 'bcd': { intOk(v[0], v[1], v[2]); pOk(v[3]); if (v[2] > 1e5) fail('range'); if (v[1] < v[0]) fail('arg'); res = 0; for (let k = v[0]; k <= Math.min(v[1], v[2]); k++) res += binPmf(k, v[2], v[3]); res = Math.min(1, res); break; }
+    case 'ppd': intOk(v[0]); sigOk(v[1]); res = poiPmf(v[0], v[1]); break;
+    case 'pcd': { intOk(v[0], v[1]); sigOk(v[2]); if (v[1] < v[0]) fail('arg'); if (v[1] > 1e5) fail('range'); res = 0; for (let k = v[0]; k <= v[1]; k++) res += poiPmf(k, v[2]); res = Math.min(1, res); break; }
+  }
+  S.preAns = S.ans; S.ans = res; save();
+  showView({ title: 'Resultado', info: DTYPES.find(t => t[0] === id)[1], rows: [[lab + ' =', fmtDec(res)], ...DF[id].map((f, i) => [f[0], shortDec(v[i])])], hint: 'El resultado queda en Ans. AC vuelve a los datos.' });
+}
+
+/* ================= Ecuaciones e inecuaciones ================= */
+const ETYPES = [['s2', 'Sistema de 2 incógnitas', 'a<i>x</i>+b<i>y</i>=c'], ['s3', 'Sistema de 3 incógnitas', 'a<i>x</i>+b<i>y</i>+c<i>z</i>=d'], ['s4', 'Sistema de 4 incógnitas', 'a<i>x</i>+…+d<i>t</i>=e'],
+  ['p2', 'Polinomio de grado 2', 'a<i>x</i>²+b<i>x</i>+c=0'], ['p3', 'Polinomio de grado 3', 'a<i>x</i>³+…+d=0'], ['p4', 'Polinomio de grado 4', 'a<i>x</i>⁴+…+e=0']];
+const POLYH = { 2: 'a<i>x</i>²+b<i>x</i>+c', 3: 'a<i>x</i>³+b<i>x</i>²+c<i>x</i>+d', 4: 'a<i>x</i>⁴+b<i>x</i>³+c<i>x</i>²+d<i>x</i>+e' };
+function eqnEnter() { pushMenu({ title: 'Ecuaciones', items: ETYPES.map(([id, l, f]) => ({ label: l, val: () => f, act: () => eqnForm(id) })) }); }
+function coefForm(key, title, info, rows, cols, head, onSolve, onBack) {
+  const prev = S.eq[key] && S.eq[key].length === rows * cols ? S.eq[key] : Array(rows * cols).fill(0);
+  mkForm({ title, info, grid: true, cols, rowHead: rows > 1, colHead: head, fields: prev.map(v => ({ val: v })),
+    onCommit: () => { S.eq[key] = S.form.fields.map(f => f.val ?? 0); save(); }, onOk: onSolve, onLast: onSolve, onBack });
+}
+function eqnForm(id) {
+  const n = +id[1], t = ETYPES.find(e => e[0] === id);
+  if (id[0] === 's') coefForm(id, t[1], t[2], n, n + 1, [...['x', 'y', 'z', 't'].slice(0, n).map(v => `<i>${v}</i>`), '='], () => eqnSolve(id), eqnEnter);
+  else coefForm(id, t[1], POLYH[n] + '=0', 1, n + 1, 'abcde'.slice(0, n + 1).split(''), () => eqnSolve(id), eqnEnter);
+}
+const cmul = (a, b) => [a[0] * b[0] - a[1] * b[1], a[0] * b[1] + a[1] * b[0]];
+const csub = (a, b) => [a[0] - b[0], a[1] - b[1]];
+const cdiv = (a, b) => { const d = b[0] * b[0] + b[1] * b[1]; return [(a[0] * b[0] + a[1] * b[1]) / d, (a[1] * b[0] - a[0] * b[1]) / d]; };
+const peval = (c, z) => c.reduce((r, k) => { r = cmul(r, z); r[0] += k; return r; }, [0, 0]);
+function polyRoots(c) {
+  const n = c.length - 1;
+  if (n === 1) return [[-c[1] / c[0], 0]];
+  if (n === 2) {
+    const [a, b, k] = c, D = b * b - 4 * a * k;
+    if (D >= 0) { const s = Math.sqrt(D), q = -(b + (b < 0 ? -s : s)) / 2; const r1 = q / a, r2 = q !== 0 ? k / q : 0; return [[Math.max(r1, r2), 0], [Math.min(r1, r2), 0]]; }
+    const im = Math.sqrt(-D) / (2 * Math.abs(a)); return [[-b / (2 * a), im], [-b / (2 * a), -im]];
+  }
+  const a = c.map(v => v / c[0]), R0 = 1 + Math.max(...a.slice(1).map(Math.abs));
+  let z = Array.from({ length: n }, (_, k) => { const t = 2 * Math.PI * k / n + 0.4; return [0.5 * R0 * Math.cos(t), 0.5 * R0 * Math.sin(t)]; });
+  for (let it = 0; it < 3000; it++) {
+    let mx = 0;
+    for (let i = 0; i < n; i++) {
+      let den = [1, 0]; for (let j = 0; j < n; j++) if (j !== i) den = cmul(den, csub(z[i], z[j]));
+      if (!den[0] && !den[1]) den = [1e-12, 0];
+      const d = cdiv(peval(a, z[i]), den); z[i] = csub(z[i], d); mx = Math.max(mx, Math.hypot(d[0], d[1]));
+    }
+    if (mx < 1e-15 * R0) break;
+  }
+  const dc = a.slice(0, -1).map((v, i) => v * (n - i));
+  z = z.map(r => { for (let k = 0; k < 8; k++) { const fp = peval(dc, r); if (Math.hypot(fp[0], fp[1]) < 1e-12) break; const s = cdiv(peval(a, r), fp); r = csub(r, s); } return r; });
+  const used = new Array(n).fill(false);
+  for (let i = 0; i < n; i++) {
+    if (used[i]) continue; const g = [i];
+    for (let j = i + 1; j < n; j++) if (!used[j] && Math.hypot(z[i][0] - z[j][0], z[i][1] - z[j][1]) < 2e-3 * Math.max(1, Math.hypot(...z[i]))) g.push(j);
+    if (g.length > 1) {
+      let m = [sumOf(g.map(k => z[k][0])) / g.length, sumOf(g.map(k => z[k][1])) / g.length];
+      if (Math.abs(m[1]) < 1e-4 * Math.max(1, Math.abs(m[0]))) m[1] = 0;
+      let dk = a.slice(); for (let t = 1; t < g.length; t++) { const deg = dk.length - 1; dk = dk.slice(0, -1).map((v, i) => v * (deg - i)); }
+      const dd = dk.slice(0, -1).map((v, i) => v * (dk.length - 1 - i));
+      for (let it = 0; it < 30; it++) { const fp = peval(dd, m); if (Math.hypot(fp[0], fp[1]) < 1e-300) break; const st = cdiv(peval(dk, m), fp); m = csub(m, st); if (Math.hypot(st[0], st[1]) < 1e-16 * Math.max(1, Math.hypot(m[0], m[1]))) break; }
+      const pm = Math.hypot(...peval(a, m)), pz = Math.max(...g.map(k => Math.hypot(...peval(a, z[k]))));
+      if (pm <= 100 * pz + 1e-15 * R0) g.forEach(k => { z[k] = m.slice(); used[k] = true; });
+    }
+  }
+  z = z.map(([re, im]) => {
+    if (Math.abs(im) < 1e-9 * Math.max(1, Math.abs(re))) im = 0;
+    const rr = Math.round(re); if (Math.abs(re - rr) < 1e-11 * Math.max(1, Math.abs(re))) re = rr;
+    if (Math.abs(re) < 1e-13 * Math.max(1, Math.abs(im))) re = 0;
+    return [re, im];
+  });
+  return z.sort((p, q) => (p[1] !== 0) - (q[1] !== 0) || q[0] - p[0] || q[1] - p[1]);
+}
+const rootH = z => z[1] === 0 ? fmtNum(z[0]) : cxStr(math.complex(z[0], z[1]), false);
+function eqnSolve(id) {
+  const v = S.form.fields.map(f => f.val ?? 0), n = +id[1], t = ETYPES.find(e => e[0] === id);
+  if (id[0] === 's') {
+    const M = Array.from({ length: n }, (_, r) => v.slice(r * (n + 1), r * (n + 1) + n + 1));
+    const R = rrefArr(M, true), zero = r => r.slice(0, n).every(x => Math.abs(x) < 1e-10);
+    if (R.some(r => zero(r) && Math.abs(r[n]) > 1e-10)) { showView({ title: 'Solución', info: t[1], rows: [['Sin solución', '']] }); return; }
+    if (R.some(zero)) { showView({ title: 'Solución', info: t[1], rows: [['Infinitas soluciones', '']] }); return; }
+    showView({ title: 'Solución', info: t[1], rows: R.map((r, i) => [`<i>${'xyzt'[i]}</i> =`, fmtNum(Math.abs(r[n]) < 1e-14 ? 0 : r[n])]) });
+    return;
+  }
+  if (v[0] === 0) fail('El coeficiente a no puede ser 0');
+  const roots = polyRoots(v), rows = roots.map((z, i) => [`<i>x</i><sub>${i + 1}</sub> =`, rootH(z)]);
+  if (n === 2) {
+    const xv = -v[1] / (2 * v[0]), yv = v[2] - v[1] * v[1] / (4 * v[0]), w = v[0] > 0 ? 'mínimo' : 'máximo';
+    rows.push([`<i>x</i> del ${w}`, fmtNum(xv)], [`<i>y</i> del ${w}`, fmtNum(yv)]);
+  }
+  showView({ title: 'Soluciones', info: POLYH[n] + '=0', rows });
+}
+const ISIGNS = [['>', '&gt;'], ['<', '&lt;'], ['≥', '≥'], ['≤', '≤']];
+function ineqEnter() {
+  pushMenu({ title: 'Inecuaciones', items: [2, 3, 4].map(d => ({ label: 'Grado ' + d, val: () => POLYH[d], sub: () => ({ title: 'Tipo de desigualdad', items: ISIGNS.map(([s, h]) => ({ label: `${POLYH[d]} ${h} 0`, act: () => ineqForm(d, s) })) }) })) });
+}
+function ineqForm(d, s) {
+  const h = ISIGNS.find(x => x[0] === s)[1];
+  coefForm('i' + d, 'Inecuación de grado ' + d, `${POLYH[d]} ${h} 0`, 1, d + 1, 'abcde'.slice(0, d + 1).split(''), () => ineqSolve(d, s), ineqEnter);
+}
+function ineqSolve(d, s) {
+  const c = S.form.fields.map(f => f.val ?? 0); if (c[0] === 0) fail('El coeficiente a no puede ser 0');
+  const f = x => c.reduce((r, k) => r * x + k, 0);
+  const rs = polyRoots(c).filter(z => z[1] === 0).map(z => z[0]).sort((a, b) => a - b).filter((r, i, A) => i === 0 || Math.abs(r - A[i - 1]) > 1e-9 * Math.max(1, Math.abs(r)));
+  const test = y => s === '>' ? y > 0 : s === '<' ? y < 0 : s === '≥' ? y >= 0 : y <= 0;
+  const incl = s === '≥' || s === '≤';
+  const els = [];
+  const k = rs.length;
+  const mid = i => k === 0 ? 0 : i === 0 ? rs[0] - 1 : i === k ? rs[k - 1] + 1 : (rs[i - 1] + rs[i]) / 2;
+  for (let i = 0; i <= k; i++) { els.push({ seg: i, ok: test(f(mid(i))) }); if (i < k) els.push({ root: i, ok: incl }); }
+  const out = []; let i = 0;
+  while (i < els.length) {
+    if (!els[i].ok) { i++; continue; }
+    let j = i; while (j + 1 < els.length && els[j + 1].ok) j++;
+    const A = els[i], B = els[j], X = '<i>x</i>', lt = incl ? '≤' : '&lt;', gt = incl ? '≥' : '&gt;';
+    if (A === B && 'root' in A) out.push(`${X} = ${fmtNum(rs[A.root])}`);
+    else {
+      const lo = 'root' in A ? [rs[A.root], true] : A.seg === 0 ? null : [rs[A.seg - 1], false];
+      const hi = 'root' in B ? [rs[B.root], true] : B.seg === k ? null : [rs[B.seg], false];
+      if (!lo && !hi) out.push('Todos los números reales');
+      else if (!lo) out.push(`${X} ${hi[1] ? '≤' : '&lt;'} ${fmtNum(hi[0])}`);
+      else if (!hi) out.push(`${X} ${lo[1] ? '≥' : '&gt;'} ${fmtNum(lo[0])}`);
+      else out.push(`${fmtNum(lo[0])} ${lo[1] ? '≤' : '&lt;'} ${X} ${hi[1] ? '≤' : '&lt;'} ${fmtNum(hi[0])}`);
+      void lt; void gt;
+    }
+    i = j + 1;
+  }
+  if (!out.length) out.push('Sin solución');
+  showView({ title: 'Solución', info: S.form.info, rows: out.map(o => [o, '']) });
+}
+
+/* ================= Tabla ================= */
+function tableForm() {
+  mkForm({
+    title: 'Tabla de valores', fields: [{ label: 'f(<i>x</i>) =', expr: true, toks: S.tb.f.slice() }, { label: 'g(<i>x</i>) =', expr: true, toks: S.tb.g.slice() }, { label: 'Inicio', val: S.tb.a }, { label: 'Fin', val: S.tb.b }, { label: 'Paso', val: S.tb.s }],
+    hint: 'Escribe f(x) con la tecla x. g(x) es opcional. OK genera.',
+    onCommit: () => { const F = S.form.fields; S.tb.f = F[0].toks.slice(); S.tb.g = F[1].toks.slice(); S.tb.a = F[2].val; S.tb.b = F[3].val; S.tb.s = F[4].val; save(); },
+    onOk: tableGen, onLast: tableGen, onBack: openHome
+  });
+}
+function tableGen() {
+  const F = S.form.fields;
+  if (!F[0].toks.length) fail('Escribe f(x) primero');
+  const a = F[2].val, b = F[3].val, st = F[4].val;
+  if (a == null || b == null || !st) fail('arg');
+  const n = Math.floor((b - a) / st + 1e-9) + 1; if (n < 1) fail('arg'); if (n > 45) fail('Máximo 45 filas: ajusta el paso');
+  const comp = t => { try { return math.compile(emitC(t)); } catch (e) { throw mapErr(e); } };
+  const cf = comp(F[0].toks), cg = F[1].toks.length ? comp(F[1].toks) : null, sc = scope();
+  const ev = c => { try { const v = normalize(c.evaluate(sc), false); return isNum(v) ? shortDec(v) : 'Error'; } catch (e) { return 'Error'; } };
+  const rows = [];
+  for (let i = 0; i < n; i++) { const x = +(a + i * st).toPrecision(12); sc.x = x; const r = [shortDec(x), ev(cf)]; if (cg) r.push(ev(cg)); rows.push(r); }
+  showView({ title: 'Tabla', info: `${n} filas`, table: { head: ['<i>x</i>', 'f(<i>x</i>)', ...(cg ? ['g(<i>x</i>)'] : [])], rows }, hint: '▲▼ recorre la tabla. AC vuelve a la definición.' });
+}
+
+/* ================= Proporción ================= */
+function ratioEnter() { pushMenu({ title: 'Proporción', items: [{ label: 'A : B = <i>X</i> : D', act: () => ratioForm(0) }, { label: 'A : B = C : <i>X</i>', act: () => ratioForm(1) }] }); }
+function ratioForm(t) {
+  mkForm({ title: t ? 'A : B = C : X' : 'A : B = X : D', fields: [{ label: 'A', val: 1 }, { label: 'B', val: 1 }, { label: t ? 'C' : 'D', val: 1 }], hint: 'EXE pasa al siguiente dato. OK calcula.',
+    onOk: () => ratioSolve(t), onLast: () => ratioSolve(t), onBack: ratioEnter });
+}
+function ratioSolve(t) {
+  const [A, B, C] = S.form.fields.map(f => { if (f.val == null) fail('data'); return f.val; });
+  if (t ? A === 0 : B === 0) fail('math');
+  const X = t ? B * C / A : A * C / B; S.preAns = S.ans; S.ans = X; save();
+  showView({ title: 'Resultado', info: S.form.title, rows: [['<i>X</i> =', fmtNum(X)]], hint: 'El resultado queda en Ans. AC vuelve a los datos.' });
+}
+
+/* ================= Registro de apps ================= */
+const APPS = {
+  calc: { name: 'Calcular', kind: 'edit', tools: calcTools },
+  cplx: { name: 'Complejos', kind: 'edit', tools: cplxTools, enter: () => toast('En Complejos la tecla x escribe i') },
+  base: { name: 'Base-N', kind: 'base', tools: baseTools },
+  mat: { name: 'Matrices', kind: 'edit', tools: matTools, enter: () => { if (!Object.keys(S.mats).length) pushMenu(defMenu('mat')); } },
+  vct: { name: 'Vectores', kind: 'edit', tools: vctTools, enter: () => { if (!Object.keys(S.vcts).length) pushMenu(defMenu('vct')); } },
+  stat: { name: 'Estadística', kind: 'form', enter: statEnter, tools: statTools },
+  dist: { name: 'Distribución', kind: 'form', enter: distEnter },
+  eqn: { name: 'Ecuaciones', kind: 'form', enter: eqnEnter },
+  ineq: { name: 'Inecuaciones', kind: 'form', enter: ineqEnter },
+  table: { name: 'Tabla', kind: 'form', enter: tableForm },
+  ratio: { name: 'Proporción', kind: 'form', enter: ratioEnter }
+};
+
+/* ================= Teclado ================= */
+const BOX = '□';
+const KFN = [
+  { id: 'frac', l: `<span class="frac"><span>${BOX}</span><span>${BOX}</span></span>`, sh: ['mixed', 'mixta'], aria: 'Fracción' },
+  { id: 'sqrt', l: sqrtH(BOX), sh: ['cbrt', '∛'], aria: 'Raíz cuadrada' },
+  { id: 'sq', l: '<i>x</i><sup>2</sup>', sh: ['cube', '<i>x</i><sup>3</sup>'], aria: 'Cuadrado' },
+  { id: 'pow', l: '<i>x</i><sup>■</sup>', sh: ['root', 'ⁿ√'], aria: 'Potencia' },
+  { id: 'log', l: 'log', sh: ['p10', '10ˣ'], aria: 'Logaritmo decimal' },
+  { id: 'ln', l: 'ln', sh: ['pe', 'eˣ'], aria: 'Logaritmo natural' },
+  { id: 'neg', l: '(−)', sh: ['angle', '∠'], aria: 'Negativo' },
+  { id: 'x', l: '<i>x</i>', sh: ['i', '<i>i</i>'], al: ['y', '<i>y</i>'], aria: 'Variable x' },
+  { id: 'inv', l: '<i>x</i><sup>−1</sup>', sh: ['fact', '<i>x</i>!'], aria: 'Inverso' },
+  { id: 'sin', l: 'sin', sh: ['asin', 'sin<sup>−1</sup>'] },
+  { id: 'cos', l: 'cos', sh: ['acos', 'cos<sup>−1</sup>'] },
+  { id: 'tan', l: 'tan', sh: ['atan', 'tan<sup>−1</sup>'] },
+  { id: 'int', l: `<span class="ms">∫${BOX}</span>`, sh: ['der', 'd/d<i>x</i>'], aria: 'Integral' },
+  { id: 'sum', l: '<span class="ms">Σ</span>', sh: ['prod', '∏'], aria: 'Sumatoria' },
+  { id: 'lp', l: '(', sh: ['abs', '|<i>x</i>|'] },
+  { id: 'rp', l: ')', sh: ['comma', ','] },
+  { id: 'sd', l: 'S⇔D', sh: ['pct', '%'], aria: 'Fracción o decimal' },
+  { id: 'logb', l: `log<sub>${BOX}</sub>`, sh: ['intf', 'Int'], aria: 'Logaritmo en base' }
+];
+const KNUM = [
+  { id: 'd7', l: '7', al: ['vA', 'A'] }, { id: 'd8', l: '8', al: ['vB', 'B'] }, { id: 'd9', l: '9', al: ['vC', 'C'] }, { id: 'del', l: 'DEL', cls: 'wd del', aria: 'Borrar' }, { id: 'ac', l: 'AC', cls: 'wd ac', aria: 'Borrar todo' },
+  { id: 'd4', l: '4', al: ['vD', 'D'] }, { id: 'd5', l: '5', al: ['vE', 'E'] }, { id: 'd6', l: '6', al: ['vF', 'F'] }, { id: 'mul', l: '×', sh: ['npr', '<i>n</i>P<i>r</i>'] }, { id: 'div', l: '÷', sh: ['ncr', '<i>n</i>C<i>r</i>'] },
+  { id: 'd1', l: '1', sh: ['gcd', 'MCD'], al: ['z', '<i>z</i>'] }, { id: 'd2', l: '2', sh: ['lcm', 'MCM'], al: ['vM', 'M'] }, { id: 'd3', l: '3', sh: ['ranint', 'RanInt'] }, { id: 'add', l: '+', sh: ['pol', 'Pol'] }, { id: 'sub', l: '−', sh: ['rec', 'Rec'] },
+  { id: 'd0', l: '0', sh: ['rnd', 'Rnd'] }, { id: 'dot', l: '.', sh: ['ran', 'Ran#'] }, { id: 'E10', l: '<span style="font-size:15px">×10<sup><i>x</i></sup></span>', sh: ['pi', 'π'], al: ['e', '<i>e</i>'], aria: 'Por diez a la' },
+  { id: 'ans', l: 'Ans', cls: 'wd', sh: ['preans', 'PreAns'] }, { id: 'exe', l: 'EXE', cls: 'wd', sh: ['approx', '≈'], aria: 'Ejecutar' }
+];
+const KCTRL = [
+  { id: 'shift', l: 'Shift', cls: 'shift', c: 1, r: 1 }, { id: 'alpha', l: 'Alpha', cls: 'alpha', c: 2, r: 1 },
+  { id: 'var', l: 'Var', c: 1, r: 2 }, { id: 'catalog', l: 'Catálogo', c: 2, r: 2 },
+  { id: 'home', l: 'Inicio', sh: ['settings', 'Ajustes'], c: 4, r: 1 }, { id: 'back', l: 'Atrás', c: 5, r: 1 },
+  { id: 'tools', l: 'Opciones', c: 4, r: 2 }, { id: 'format', l: 'Formato', c: 5, r: 2 }
+];
+const KDEF = {}; [...KFN, ...KNUM, ...KCTRL].forEach(k => KDEF[k.id] = k);
+const strip = h => String(h).replace(/<[^>]+>/g, '');
+function buildKeys() {
+  const kh = k => `<div class="k"><div class="lg"><span class="s">${k.sh ? k.sh[1] : ''}</span><span class="a">${k.al ? k.al[1] : ''}</span></div><button class="key ${k.cls || ''}" data-k="${k.id}" aria-label="${k.aria || strip(k.l)}">${k.l}</button></div>`;
+  $('#fn').innerHTML = KFN.map(kh).join('');
+  $('#num').innerHTML = KNUM.map(kh).join('');
+  $('#ctrl').innerHTML = KCTRL.map(k => `<button class="cbtn ${k.cls || ''}" data-k="${k.id}" style="grid-column:${k.c};grid-row:${k.r}">${k.sh ? `<span class="s2">${k.sh[1]}</span>` : ''}<span>${k.l}</span></button>`).join('') +
+    `<div class="dpad"><button class="up" data-k="up" aria-label="Arriba">▲</button><button class="lf" data-k="left" aria-label="Izquierda">◀</button><button class="ok" data-k="ok">OK</button><button class="rt" data-k="right" aria-label="Derecha">▶</button><button class="dn" data-k="down" aria-label="Abajo">▼</button></div>`;
+}
+function relabel() {
+  document.body.classList.toggle('base-mode', S.app === 'base');
+  for (const b of document.querySelectorAll('.key[data-k]')) {
+    const id = b.dataset.k, d = KDEF[id]; if (!d) continue;
+    let l = d.l;
+    if (S.app === 'base' && BASEMAP[id]) l = `<span style="font:600 14px var(--sans)">${BASEMAP[id][0]}</span>`;
+    else if (S.app === 'cplx' && id === 'x') l = '<i>i</i>';
+    if (b.innerHTML !== l) b.innerHTML = l;
+  }
+}
+
+/* ================= Despacho ================= */
+function haptic() { if (S.set.haptic && navigator.vibrate) { try { navigator.vibrate(8); } catch (e) { } } }
+let toastT;
+function toast(m) { const t = $('#toast'); t.textContent = m; t.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 1900); }
+function dispatch(a) {
+  if (a === 'home') { openHome(); return; }
+  if (a === 'settings') { pushMenu(settingsMenu()); return; }
+  if (S.err) {
+    S.err = null;
+    if (['left', 'right', 'back', 'del', 'ok', 'exe', 'up', 'down'].includes(a)) return;
+    if (a === 'ac') { if (!S.form && !S.view && APPS[S.app].kind === 'edit') { S.expr = []; S.cur = { path: [], i: 0 }; S.done = false; } return; }
+  }
+  if (S.stack.length) return menuKey(a);
+  if (S.view) return viewKey(a);
+  if (S.form) return formKey(a);
+  const k = APPS[S.app].kind;
+  if (k === 'base') return baseKey(a);
+  if (k === 'edit') return editKey(a);
+  ensureScreen();
+}
+function run(a) {
+  try { dispatch(a); } catch (e) { const ce = mapErr(e); S.err = ce.message; if (!(e && e.calc) && window.console) console.warn(e); }
+  render();
+}
+function press(id) {
+  haptic();
+  if (id === 'shift') { S.shift = !S.shift; S.alpha = false; render(); return; }
+  if (id === 'alpha') { S.alpha = !S.alpha; S.shift = false; render(); return; }
+  const d = KDEF[id]; let a = id;
+  const plain = !S.stack.length && !S.form && !S.view;
+  if (S.shift && d && d.sh) a = d.sh[0];
+  else if (S.alpha && d && d.al) a = d.al[0];
+  else if (S.app === 'base' && plain && BASEMAP[id]) a = BASEMAP[id][1];
+  else if (S.app === 'cplx' && id === 'x' && plain) a = 'i';
+  S.shift = S.alpha = false;
+  run(a);
+}
+
+/* ================= Render ================= */
+function vStatus() {
+  const p = [];
+  if (S.shift) p.push('<span class="on">S</span>');
+  if (S.alpha) p.push('<span class="on">A</span>');
+  p.push(`<span>${S.app === 'base' ? BASES[S.base.b] : S.set.angle}</span>`);
+  if (S.set.fmt === 'fix') p.push(`<span>Fix${S.set.fix}</span>`); else if (S.set.fmt === 'sci') p.push(`<span>Sci${S.set.sci}</span>`); else if (S.set.fmt === 'norm2') p.push('<span>Norm2</span>');
+  if (S.set.res === 'dec') p.push('<span>Dec</span>');
+  if (S.app === 'cplx') p.push(`<span>${S.set.cplx === 'polar' ? 'r∠θ' : 'a+bi'}</span>`);
+  if (isNum(S.vars.M) && S.vars.M !== 0) p.push('<span>M</span>');
+  if (APPS[S.app].kind === 'edit' && S.hist.length && S.hi > 0) p.push('<span>▲</span>');
+  p.push(`<span class="app">${APPS[S.app].name}</span>`);
+  return p.join('');
+}
+function vEdit() {
+  let h = `<div class="input m"><span class="wrap">${rSlot(S.expr, [], S.done ? null : S.cur, true)}</span></div>`;
+  if (S.done && S.res) h += `<div class="result m">${S.res.html}</div>`;
+  return h;
+}
+function render() {
+  $('#status').innerHTML = vStatus();
+  let h;
+  if (S.stack.length) h = vMenu(S.stack[S.stack.length - 1]);
+  else if (S.view) h = vView(S.view);
+  else if (S.form) h = vForm(S.form);
+  else if (APPS[S.app].kind === 'base') h = vBase();
+  else if (APPS[S.app].kind === 'edit') h = vEdit();
+  else h = '';
+  if (S.err) h += `<div class="err" role="alert"><b>${S.err}</b><span>◀ o ▶ para corregir. AC para borrar.</span></div>`;
+  const v = $('#view'); v.innerHTML = h;
+  document.body.classList.toggle('sh', S.shift); document.body.classList.toggle('al', S.alpha);
+  const c = v.querySelector('.input .cur') || v.querySelector('.sel');
+  if (c) c.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+}
+
+/* ================= Eventos ================= */
+const REPEAT = new Set(['del', 'left', 'right', 'up', 'down']);
+let rep = null;
+const clearRep = () => { clearTimeout(rep); clearInterval(rep); rep = null; };
+function bindEvents() {
+  document.addEventListener('pointerdown', e => {
+    const b = e.target.closest('[data-k]'); if (!b) return;
+    e.preventDefault(); b.classList.add('down');
+    const id = b.dataset.k; press(id);
+    clearRep(); if (REPEAT.has(id)) rep = setTimeout(() => { rep = setInterval(() => press(id), 80); }, 420);
+  });
+  const up = () => { document.querySelectorAll('.down').forEach(x => x.classList.remove('down')); clearRep(); };
+  ['pointerup', 'pointercancel'].forEach(t => window.addEventListener(t, up));
+  window.addEventListener('blur', up);
+  document.addEventListener('click', e => { const b = e.target.closest('[data-k]'); if (b && e.detail === 0) press(b.dataset.k); });
+  document.addEventListener('contextmenu', e => { if (e.target.closest('.calc')) e.preventDefault(); });
+  $('#view').addEventListener('click', e => {
+    const t = e.target.closest('[data-alt],[data-mi],[data-fi],[data-vi]'); if (!t) return;
+    haptic();
+    try {
+      if (t.dataset.alt != null) { const m = S.stack[S.stack.length - 1]; m.sel = +t.dataset.alt; m.items[m.sel].alt(); }
+      else if (t.dataset.mi != null) { const m = S.stack[S.stack.length - 1]; m.sel = +t.dataset.mi; runItem(m.items[m.sel]); }
+      else if (t.dataset.fi != null) { commitField(S.form); S.form.sel = +t.dataset.fi; }
+      else if (t.dataset.vi != null) S.view.sel = +t.dataset.vi;
+    } catch (err) { S.err = mapErr(err).message; }
+    render();
+  });
+  const KB = { '.': 'dot', ',': 'comma', '+': 'add', '-': 'sub', '*': 'mul', '/': 'div', '^': 'pow', '(': 'lp', ')': 'rp', Enter: 'exe', '=': 'exe', Backspace: 'del', Escape: 'ac', Delete: 'ac',
+    ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right', '!': 'fact', '%': 'pct', x: 'x', s: 'sin', c: 'cos', t: 'tan', l: 'ln', r: 'sqrt', p: 'pi', e: 'e', h: 'home', a: 'ans' };
+  for (let d = 0; d < 10; d++) KB[d] = 'd' + d;
+  document.addEventListener('keydown', e => {
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    const a = KB[e.key]; if (!a) return;
+    e.preventDefault(); run(a);
+  });
+}
+
+/* ================= Arranque ================= */
+(async function init() {
+  buildKeys(); bindEvents();
+  try { await load(); } catch (e) { }
+  if (!APPS[S.app]) S.app = 'calc';
+  applySettings(); relabel();
+  if (APPS[S.app].kind === 'form') APPS[S.app].enter();
+  render();
+  if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
+    navigator.serviceWorker.register('sw.js').catch(() => { });
+  }
+})();
+
+</script>
+</body>
+</html>

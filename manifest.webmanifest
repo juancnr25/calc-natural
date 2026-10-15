@@ -1,0 +1,32 @@
+{
+  "name": "Calc Natural · Calculadora científica",
+  "short_name": "Calc Natural",
+  "description": "Calculadora científica con pantalla natural, matrices, vectores, estadística, ecuaciones y más. Funciona sin conexión.",
+  "lang": "es-PE",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#1d2025",
+  "theme_color": "#1d2025",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
